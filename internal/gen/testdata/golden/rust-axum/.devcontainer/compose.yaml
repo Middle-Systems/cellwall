@@ -1,4 +1,4 @@
-# cellwall:generated sha256=f9cd93c569e164c0444010ad211737da312cf4304612566784cb5aab00d11e47
+# cellwall:generated sha256=3b07ddf42018459c2684537355d4d8e0efc33b4782918726d4281bbb5e5027ac
 # Sandbox topology for rust-axum (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -79,7 +79,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 1024
     mem_limit: 8g
-    cpus: 4
+    cpus: ${CELLWALL_CPUS:-4}
     read_only: false
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=1g,mode=1777

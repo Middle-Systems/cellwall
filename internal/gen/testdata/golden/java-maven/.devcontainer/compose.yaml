@@ -1,4 +1,4 @@
-# cellwall:generated sha256=08399f0345b79543d56f22bebc9499a288fb6a296e74c5efd2f968307346cf3d
+# cellwall:generated sha256=0a2b0f759e6e5419345cf8631259e3d3f06756181b95e48938e6c66cfa2f8cae
 # Sandbox topology for java-maven (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -79,7 +79,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 1024
     mem_limit: 8g
-    cpus: 4
+    cpus: ${CELLWALL_CPUS:-4}
     read_only: false
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=1g,mode=1777

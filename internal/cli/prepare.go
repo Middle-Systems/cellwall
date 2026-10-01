@@ -1,9 +1,13 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -22,7 +26,7 @@ func newPrepareCmd(g *globalFlags) *cobra.Command {
 			"Running it again with nothing changed writes nothing.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			res, err := prepare.Run(prepare.Options{Root: g.ProjectDir, GlobalConfigDir: globalConfigDir(), GatewayImage: gatewayImage})
+			res, err := prepare.Run(prepare.Options{Root: g.ProjectDir, GlobalConfigDir: globalConfigDir(), GatewayImage: gatewayImage, EngineCPUs: engineCPUs(cmd.Context())})
 			if err != nil {
 				return fmt.Errorf("%w\n  next: fix the problem above, then re-run `cellwall prepare`", err)
 			}
@@ -98,4 +102,17 @@ func printPrepare(w io.Writer, r *prepare.Result) {
 			writef(w, "  ! %s\n", x)
 		}
 	}
+}
+
+// engineCPUs asks the container engine how many CPUs it has; 0 if it cannot be reached (prepare
+// works without a running engine, it just cannot clamp the CPU limit).
+func engineCPUs(ctx context.Context) int {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "docker", "info", "--format", "{{.NCPU}}").Output()
+	if err != nil {
+		return 0
+	}
+	n, _ := strconv.Atoi(strings.TrimSpace(string(out)))
+	return n
 }

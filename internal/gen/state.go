@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/middle-systems/cellwall/internal/config"
@@ -144,7 +145,7 @@ func Override(in OverrideInputs) (File, error) {
 // EnvFile renders compose.env, the variables `docker compose --env-file` needs. Values are
 // single-quoted so compose does not interpolate `$` or split on spaces. gatewayImage should be a
 // digest reference in a release build.
-func EnvFile(uid, gid int, workspaceAbs, stateAbs, gatewayImage string) (File, error) {
+func EnvFile(uid, gid int, workspaceAbs, stateAbs, gatewayImage string, cpus float64) (File, error) {
 	for _, v := range []string{workspaceAbs, stateAbs, gatewayImage} {
 		if strings.ContainsAny(v, "'\n\r\x00") {
 			return File{}, fmt.Errorf("value %q contains a quote or control character, which cannot be written to an env file safely", v)
@@ -156,6 +157,11 @@ func EnvFile(uid, gid int, workspaceAbs, stateAbs, gatewayImage string) (File, e
 		"CELLWALL_STATE='" + filepath.ToSlash(stateAbs) + "'",
 		fmt.Sprintf("CELLWALL_UID=%d", uid),
 		"CELLWALL_WORKSPACE='" + filepath.ToSlash(workspaceAbs) + "'",
+	}
+	if cpus > 0 {
+		// Docker refuses to create a container whose CPU limit exceeds the engine's CPUs, so a
+		// limit above that is clamped here (and reported by prepare) rather than failing `up`.
+		lines = append(lines, "CELLWALL_CPUS="+strconv.FormatFloat(cpus, 'f', -1, 64))
 	}
 	body := "# Written by `cellwall prepare`; local to this machine.\n" + strings.Join(lines, "\n") + "\n"
 	return File{Path: StateDirRel + "/compose.env", Content: []byte(Stamp("#", body)), Mode: 0o644, Kind: Generated}, nil

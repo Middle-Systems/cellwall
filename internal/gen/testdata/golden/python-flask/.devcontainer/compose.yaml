@@ -1,4 +1,4 @@
-# cellwall:generated sha256=09fd82405de01fbf1b71b40436a7c4f0488ad3f90f8c794fad19b57ad0933a35
+# cellwall:generated sha256=689ceda09fdad87d44ef1a20e05633364b6aafa9ded37f95d9b04ced151de41d
 # Sandbox topology for python-flask (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -82,7 +82,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 1024
     mem_limit: 8g
-    cpus: 4
+    cpus: ${CELLWALL_CPUS:-4}
     read_only: false
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=1g,mode=1777

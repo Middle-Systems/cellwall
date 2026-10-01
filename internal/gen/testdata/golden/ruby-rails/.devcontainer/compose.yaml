@@ -1,4 +1,4 @@
-# cellwall:generated sha256=633c6bb703745e241882ac41c0aba81cd43931f467a4e1901e6fb18b64b9df35
+# cellwall:generated sha256=db6914a5a9768cc8e0a6c6085e4c90329f0e61e252ab07696509791e9894cba5
 # Sandbox topology for ruby-rails (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -78,7 +78,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 1024
     mem_limit: 8g
-    cpus: 4
+    cpus: ${CELLWALL_CPUS:-4}
     read_only: false
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=1g,mode=1777

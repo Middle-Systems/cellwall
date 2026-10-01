@@ -531,3 +531,26 @@ func TestPrepareDoesNotChangeThePlan(t *testing.T) {
 		}
 	}
 }
+
+// Docker rejects a CPU limit above the engine's CPUs, so prepare must clamp it and say so.
+func TestPrepareClampsCPUsToTheEngine(t *testing.T) {
+	root := initialised(t, "go-http")
+	res, err := Run(Options{Root: root, EngineCPUs: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	env := read(t, root, ".cellwall/state/compose.env")
+	if !strings.Contains(env, "CELLWALL_CPUS=2\n") {
+		t.Errorf("compose.env lacks the clamp:\n%s", env)
+	}
+	if !strings.Contains(strings.Join(res.Warnings, "\n"), "engine has 2 CPUs") {
+		t.Errorf("no warning about the clamp: %v", res.Warnings)
+	}
+	root = initialised(t, "go-http")
+	if _, err := Run(Options{Root: root, EngineCPUs: 64}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(read(t, root, ".cellwall/state/compose.env"), "CELLWALL_CPUS") {
+		t.Error("a limit within the engine's CPUs must not be overridden")
+	}
+}

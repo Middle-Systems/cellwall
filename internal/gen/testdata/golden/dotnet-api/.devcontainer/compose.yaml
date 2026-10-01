@@ -1,4 +1,4 @@
-# cellwall:generated sha256=197d596015bb5a3e29793e0b9114d505779e0aa32873daf34fc975602b28b9dd
+# cellwall:generated sha256=d64f13bb0a147e70ba812c8244419d29661f3b914fb1b639a7ff3835acee649b
 # Sandbox topology for dotnet-api (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -80,7 +80,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 1024
     mem_limit: 8g
-    cpus: 4
+    cpus: ${CELLWALL_CPUS:-4}
     read_only: false
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=1g,mode=1777

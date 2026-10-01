@@ -1,4 +1,4 @@
-# cellwall:generated sha256=0b026eb3cebe192eebb6f925e76a6499bc04dd47ffc6eaa8113a7396fc1585ae
+# cellwall:generated sha256=c2b4fb03c158d7adfde16681fe0630b78c9fcf527d6dd8b5467d010db40aa40e
 # Sandbox topology for empty (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -78,7 +78,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 1024
     mem_limit: 8g
-    cpus: 4
+    cpus: ${CELLWALL_CPUS:-4}
     read_only: false
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=1g,mode=1777

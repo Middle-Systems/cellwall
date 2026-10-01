@@ -34,6 +34,9 @@ type Options struct {
 	// GatewayImage is the gateway image reference written to compose.env. Release builds pass a
 	// digest reference; the default is the locally built tag.
 	GatewayImage string
+	// EngineCPUs is the number of CPUs the container engine reports (0 = unknown). A configured
+	// hardening.cpus above it is clamped to it, because Docker rejects such a limit outright.
+	EngineCPUs int
 }
 
 // DefaultGatewayImage is what compose uses when no digest-pinned image has been supplied.
@@ -163,7 +166,12 @@ func Run(opts Options) (*Result, error) {
 	if image == "" {
 		image = DefaultGatewayImage
 	}
-	env, err := gen.EnvFile(uid, gid, root, stateDir, image)
+	clamp := 0.0
+	if opts.EngineCPUs > 0 && cfg.Hardening.CPUs > float64(opts.EngineCPUs) {
+		clamp = float64(opts.EngineCPUs)
+		res.Warnings = append(res.Warnings, fmt.Sprintf("hardening.cpus is %g but the container engine has %d CPUs; using %d (raise the engine's CPU allocation, or lower hardening.cpus in .cellwall/config.yaml)", cfg.Hardening.CPUs, opts.EngineCPUs, opts.EngineCPUs))
+	}
+	env, err := gen.EnvFile(uid, gid, root, stateDir, image, clamp)
 	if err != nil {
 		return nil, err
 	}

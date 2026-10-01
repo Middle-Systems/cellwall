@@ -1,4 +1,4 @@
-# cellwall:generated sha256=fa02eefc4993182e8cb7e17bc4f41be19f2bc40c31e2dbc1486d8eccf8da1274
+# cellwall:generated sha256=8858335443800f4f473faa8834df9211dfe2f7378b263eb9558435641e2564af
 # Sandbox topology for php-laravel (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -79,7 +79,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 1024
     mem_limit: 8g
-    cpus: 4
+    cpus: ${CELLWALL_CPUS:-4}
     read_only: false
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=1g,mode=1777

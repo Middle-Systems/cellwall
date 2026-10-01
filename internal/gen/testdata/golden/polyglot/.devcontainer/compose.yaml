@@ -1,4 +1,4 @@
-# cellwall:generated sha256=bc76c9a0e5d41eaea7e25dfb76fa068b5c5318a74a53b9b2ba675623c4d2e6a6
+# cellwall:generated sha256=dabf39c4c6d77331a2b2b477ca048e015b00b1cfcee6dce0ac024a3c996a7f64
 # Sandbox topology for polyglot (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -83,7 +83,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 1024
     mem_limit: 8g
-    cpus: 4
+    cpus: ${CELLWALL_CPUS:-4}
     read_only: false
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=1g,mode=1777
