@@ -9,6 +9,16 @@ added. `go mod verify` and `govulncheck` gate merges.
 
 ## CI actions
 
-Currently referenced by major-version tag. **TODO before M5:** pin each to a full commit SHA
-(Dependabot will keep the SHAs current). Not done in M0 because resolving SHAs needs access to
-the actions' repositories, which this session's tooling is scoped away from.
+The organization enforces "all actions must be pinned to a full-length commit SHA", which is also
+the right policy for this project. Each action is pinned to a commit SHA with its version in a
+comment; Dependabot (`github-actions` ecosystem) keeps them current.
+
+When pinning, resolve the tag with `git ls-remote <repo> refs/tags/<tag> 'refs/tags/<tag>^{}'` and
+use the **peeled `^{}` commit** when it exists: for annotated tags the first line is the tag
+object, not a commit, and pinning it fails (golangci-lint-action v8.0.0 is annotated).
+
+| Action | Version | Why |
+|---|---|---|
+| `actions/checkout` | v4.4.0 | Fetch the repo; `persist-credentials: false` so later steps cannot reuse the token. |
+| `actions/setup-go` | v5.6.0 | Install the Go version from `go.mod`. |
+| `golangci/golangci-lint-action` | v8.0.0 | Run golangci-lint v2 with caching. |
