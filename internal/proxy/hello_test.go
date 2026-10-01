@@ -247,9 +247,10 @@ func TestRealClients(t *testing.T) {
 			defer ln.Close()
 			// Never let a client that fails to connect hang the suite (e.g. one that honours a
 			// proxy environment variable and talks to the proxy instead of this listener).
-			_ = ln.(*net.TCPListener).SetDeadline(time.Now().Add(5 * time.Second))
+			// Generous: Node's cold start on a Windows CI runner takes several seconds.
+			_ = ln.(*net.TCPListener).SetDeadline(time.Now().Add(25 * time.Second))
 			_, port, _ := net.SplitHostPort(ln.Addr().String())
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, c.argv(port)[0], c.argv(port)[1:]...) // #nosec G204 -- fixed test argv
 			cmd.Env = append(os.Environ(), "HTTPS_PROXY=", "https_proxy=", "HTTP_PROXY=", "http_proxy=", "ALL_PROXY=", "all_proxy=")
@@ -262,7 +263,7 @@ func TestRealClients(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer conn.Close()
-			_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+			_ = conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 			info, _, err := ReadClientHello(conn)
 			if err != nil {
 				t.Fatalf("%s hello rejected: %v", c.name, err)
