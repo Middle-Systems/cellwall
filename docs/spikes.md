@@ -107,11 +107,21 @@ and version args last; use `RUN --mount=type=cache` for package caches.
   and valid agent credentials).
 - **S8 filesystem timing:** `npm install` + test run, `bind` vs `volume`, on macOS and Windows.
 
-## CI notes
+## CI notes (GitHub-hosted ubuntu runner, run 3 onward)
 
-- The first CI run of `topology-spikes` failed in `s2` on "sibling `gateway` resolves via embedded
-  DNS" on the GitHub runner (resolver options `edns0 trust-ad` instead of `timeout:2 attempts:3`),
-  while passing locally. The cause was not determined from that log: the harness hid the command's
-  output. All security assertions (host isolation, no DNS leak with a working control meter) passed
-  on the runner. The harness now prints diagnostics on failure and retries the sibling lookup, and
-  `make spikes` runs every script so one run reports everything.
+All of S1, S1b, S2, S3, S4 and S7 pass on the runner as well as locally, so the Linux results
+above hold on a second kernel/engine build, including both halves of the two design-changing
+findings: plain `internal` still exposes host `0.0.0.0` services (S1b), and `.git` can be renamed
+away unless pinned (S4 "DEMO (hole)" passes, i.e. the hole is real there too).
+
+- The first CI run failed in `s2` on "sibling `gateway` resolves via embedded DNS", which used
+  busybox `nslookup`. The runner's resolver config differs (`options edns0 trust-ad`, a `search`
+  domain, systemd-resolved upstream). After switching that check to the `getaddrinfo` path (`ping`)
+  it passed on the first attempt, with no retry needed, so this was **not** a registration race.
+  Most likely a busybox `nslookup` quirk on that resolver setup, but that is a hypothesis: it was
+  not isolated.
+- Consequence for reading S2: the `getaddrinfo` (`ping ... bad address`) assertions are the
+  authoritative DNS checks. The `nslookup` "does not resolve" assertions are corroboration only,
+  because that tool behaved inconsistently across environments.
+- `actions/checkout@v4.4.0` logs a Node 20 deprecation warning (forced to Node 24). Not a failure;
+  Dependabot will propose a newer major.
