@@ -18,6 +18,7 @@ Rancher Desktop** — those columns are explicitly *pending*.
 | S7 | done (Linux/Docker) | **GO** | Warm rebuild 0.7 s vs 7 s cold; layer order matters. |
 | S8 | **pending** | n/a | Needs macOS and Windows hosts. |
 | S9 | done (Linux/Docker) | **GO, design change** | Single-file bind mounts go stale on atomic replace; mount the policy *directory*. |
+| S10 | done (Linux/Docker) | **GO, with requirements** | Cache volumes need the image to pre-create+chown the dir; Docker leaves root-owned placeholders in the repo unless `prepare` pre-creates them; a tmpfs cleanly hides the gateway state. |
 
 ## S1 — internal network isolation (`spikes/s1_internal_network.sh`, `s1b_host_reachability.sh`)
 
@@ -102,6 +103,22 @@ policy *directory* read-only and detects changes by polling (inotify across this
 something to rely on), and the generated compose must not mount `policy.json` as a single file —
 Appendix A of the spec does, which is wrong for hot reload. Tested on Linux only; Docker Desktop's
 file sharing may behave differently (S5).
+
+## S10 — nested mounts the generated compose relies on (`spikes/s10_nested_mounts.sh`)
+
+Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5).
+
+- **Cache volumes under a bind mount** (e.g. `node_modules` on a named volume inside `/workspace`):
+  a fresh volume is root-owned unless the *image* already has that directory owned by the target
+  user, in which case Docker copies the ownership into the volume. The generated Dockerfile
+  therefore creates and `chown`s every cache directory.
+- **Host placeholders:** mounting a volume at a path that does not exist in the bind-mounted repo
+  makes Docker create it **in the user's repository, owned by root**, which breaks a later
+  host-side `npm install`/`cargo build` with `EACCES`. A directory that already exists keeps its
+  owner. `cellwall prepare` therefore pre-creates cache directories as the invoking user.
+- **Hiding gateway state:** a `tmpfs` mounted at `/workspace/.cellwall/state`, inside the read-only
+  `.cellwall` bind mount, hides the state directory (policy, audit) from the agent completely, and
+  the agent cannot write into it either (the tmpfs is root-owned `0755`). Nothing reaches the host.
 
 ## Pending spikes
 
