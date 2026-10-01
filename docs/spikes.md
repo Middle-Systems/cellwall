@@ -41,7 +41,13 @@ is the safe direction). Older engines/Podman need a separate answer (S5). IPv6 w
 ## S2 — DNS (`spikes/s2_dns.sh`)
 
 On the isolated internal network, for three resolver configurations (default, `--dns` blackhole,
-`--dns 127.0.0.1`): external names do not resolve (`nslookup`, `getent`), sibling names do.
+`--dns 127.0.0.1`): external names do not resolve (`nslookup`, and `ping`, which reports
+`bad address` only when getaddrinfo itself fails), sibling names do.
+
+> **Correction (found via CI):** the first version of this spike claimed a `getent`-based
+> getaddrinfo check, but busybox has no `getent`, so that check passed vacuously (exit 127). The
+> harness now treats exit 126/127 in `expect_fail` as a failure, `s1` has positive controls for
+> every tool used in a "must fail" check, and the getaddrinfo check uses `ping`.
 `resolv.conf` always shows the embedded resolver `127.0.0.11`; `--dns` is **not** honoured for
 user-defined networks, so it cannot be relied on as a control either way.
 
@@ -100,3 +106,12 @@ and version args last; use `RUN --mount=type=cache` for package caches.
 - **S6 endpoints:** run the agent with a permissive policy and read the audit log (needs M1 gateway
   and valid agent credentials).
 - **S8 filesystem timing:** `npm install` + test run, `bind` vs `volume`, on macOS and Windows.
+
+## CI notes
+
+- The first CI run of `topology-spikes` failed in `s2` on "sibling `gateway` resolves via embedded
+  DNS" on the GitHub runner (resolver options `edns0 trust-ad` instead of `timeout:2 attempts:3`),
+  while passing locally. The cause was not determined from that log: the harness hid the command's
+  output. All security assertions (host isolation, no DNS leak with a working control meter) passed
+  on the runner. The harness now prints diagnostics on failure and retries the sibling lookup, and
+  `make spikes` runs every script so one run reports everything.

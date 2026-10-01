@@ -25,6 +25,10 @@ echo "== agent resolv.conf"
 agent cat /etc/resolv.conf || true
 
 expect_ok   "agent resolves and reaches gateway by name on :3128" agent sh -c 'echo | nc -w 3 gateway 3128'
+# Positive controls: every tool used in an expect_fail below must be shown to work on a reachable target.
+GW_IP="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{if eq .NetworkID "'"$(docker network inspect -f '{{.Id}}' "$SANDBOX")"'"}}{{.IPAddress}}{{end}}{{end}}' "${RUN_ID}-gateway")"
+expect_ok   "control: nc -z reaches sibling $GW_IP:3128"          agent nc -w 3 -z "$GW_IP" 3128
+expect_ok   "control: ping reaches sibling $GW_IP"                agent ping -c1 -W2 "$GW_IP"
 expect_fail "agent cannot connect to 1.1.1.1:443"                 agent nc -w 3 -z 1.1.1.1 443
 expect_fail "agent cannot connect to 8.8.8.8:53 (tcp)"            agent nc -w 3 -z 8.8.8.8 53
 expect_fail "agent cannot ping 1.1.1.1"                           agent ping -c1 -W2 1.1.1.1
