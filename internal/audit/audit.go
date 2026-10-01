@@ -22,6 +22,8 @@ import (
 const (
 	EventDecision = "decision"
 	EventClose    = "close"
+	// EventPolicy records a policy reload (Action "reload" or "reload-failed").
+	EventPolicy = "policy"
 )
 
 // Actions.

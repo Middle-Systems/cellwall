@@ -47,6 +47,15 @@ func TestResolveAllowsPublic(t *testing.T) {
 	}
 }
 
+func TestResolveQueryForm(t *testing.T) {
+	r := &fakeResolver{answers: map[string][]netip.Addr{"ok.example": addrs("93.184.216.34"), "upstream": addrs("93.184.216.34")}}
+	_, _ = Resolve(context.Background(), r, "ok.example", false)
+	_, _ = Resolve(context.Background(), r, "upstream", false)
+	if len(r.calls) != 2 || r.calls[0] != "ok.example." || r.calls[1] != "upstream" {
+		t.Errorf("dotted names must be rooted (no search domains), single labels left as written: %v", r.calls)
+	}
+}
+
 func TestResolveBlocksAnyBadAddress(t *testing.T) {
 	// One internal address hidden among public ones must sink the whole connection.
 	r := &fakeResolver{answers: map[string][]netip.Addr{

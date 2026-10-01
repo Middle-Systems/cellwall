@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -43,10 +44,20 @@ func (e *ResolveError) Unwrap() error { return e.Err }
 // blocked the whole connection is refused (not just that address): a name that mixes public and
 // internal addresses is either misconfigured or an attempt to exploit round-robin selection.
 //
-// The name is looked up fully qualified (trailing dot) so the host's DNS search domains can never
-// turn "registry" into "registry.some.internal.corp".
+// Dotted names are looked up fully qualified (trailing dot): that bypasses the host's DNS search
+// domains and /etc/hosts, so "registry.npmjs.org" can never be rewritten to
+// "registry.npmjs.org.some.internal.corp" or pinned by a hosts entry. Go's resolver does not
+// consult /etc/hosts for rooted names, which is the point.
+//
+// Single-label names ("upstream", "localhost") are looked up as written, because search domains,
+// Docker service aliases and hosts entries are exactly how such names are meant to resolve. The
+// address checks below apply either way.
 func Resolve(ctx context.Context, r Resolver, host string, allowPrivate bool) ([]netip.Addr, error) {
-	addrs, err := r.LookupNetIP(ctx, "ip", host+".")
+	query := host
+	if strings.Contains(host, ".") {
+		query = host + "."
+	}
+	addrs, err := r.LookupNetIP(ctx, "ip", query)
 	if err != nil {
 		return nil, &ResolveError{Host: host, Err: err}
 	}
