@@ -1,0 +1,9 @@
+# Preset: rust
+# Provenance: Public registry documentation from maintainer knowledge; NOT yet verified empirically (spike S6). Treat as a starting point and run with 'cellwall logs --denied'.
+# Rules are exact hostnames on port 443. Presets never contain relaxations (enforced by tests).
+version: 1
+description: "Rust: crates.io sparse index, downloads and API"
+rules:
+  - host: index.crates.io
+  - host: static.crates.io
+  - host: crates.io

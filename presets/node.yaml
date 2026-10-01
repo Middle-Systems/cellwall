@@ -1,0 +1,8 @@
+# Preset: node
+# Provenance: Public registry documentation from maintainer knowledge; NOT yet verified empirically (spike S6). Treat as a starting point and run with 'cellwall logs --denied'. Claude Code plugin installs also use registry.npmjs.org (per the Claude Code docs). node-gyp header downloads (nodejs.org) are not included.
+# Rules are exact hostnames on port 443. Presets never contain relaxations (enforced by tests).
+version: 1
+description: "Node.js: npm and Yarn registries"
+rules:
+  - host: registry.npmjs.org
+  - host: registry.yarnpkg.com

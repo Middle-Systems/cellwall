@@ -1,0 +1,7 @@
+# Preset: claude-updates
+# Provenance: Claude Code network access requirements page (code.claude.com/docs/en/network-config), read 2026-10-01. Not yet verified empirically (spike S6). storage.googleapis.com is deliberately NOT included: it is path-style multi-tenant storage, so allowing the host lets an agent write to any attacker-owned bucket. Pin Claude Code in the image instead (agent.version).
+# Rules are exact hostnames on port 443. Presets never contain relaxations (enforced by tests).
+version: 1
+description: "Claude Code: native installer, auto-updater and plugin downloads (opt-in)"
+rules:
+  - host: downloads.claude.ai
