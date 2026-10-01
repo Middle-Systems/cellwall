@@ -138,8 +138,9 @@ rules:
 		{"api.example.com", 8443, ProtoTunnel, true, ReasonRule},
 		{"api.example.com", 22, ProtoTunnel, false, ReasonPortNotAllow},
 		{"web.example.com", 80, ProtoHTTP, true, ReasonRule},
-		{"web.example.com", 443, ProtoTunnel, true, ReasonRule}, // unsafe_allow_http defaults ports to 80+443
-		{"web.example.com", 8080, ProtoHTTP, false, ReasonPortNotAllow},
+		{"web.example.com", 443, ProtoTunnel, true, ReasonRule},         // unsafe_allow_http defaults ports to 80+443
+		{"web.example.com", 8080, ProtoHTTP, false, ReasonHTTPNotAllow}, // allowed host, not over plain HTTP: say "use https"
+		{"registry.npmjs.org", 80, ProtoHTTP, false, ReasonHTTPNotAllow},
 	}
 	for _, tt := range tests {
 		d := c.Match(tt.host, tt.port, tt.proto)
@@ -168,6 +169,13 @@ rules:
 		if d := c.Match("good.example.com", 443, ProtoTunnel); !d.Allowed {
 			t.Errorf("sibling must stay allowed: %+v", d)
 		}
+	}
+}
+
+func TestDenyRulesForOtherPortsDoNotMakeAHostPortDenied(t *testing.T) {
+	c := mustCompile(t, "version: 1\nrules:\n  - {host: a.example.com, action: deny, ports: [8443]}\n")
+	if d := c.Match("a.example.com", 443, ProtoTunnel); d.Allowed || d.Reason != ReasonDefaultDeny {
+		t.Errorf("a host with only deny rules must be default-deny, got %+v", d)
 	}
 }
 

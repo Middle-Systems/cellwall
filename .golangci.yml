@@ -17,6 +17,12 @@ linters:
     sloglint:
       no-mixed-args: true
       attr-only: true
+  exclusions:
+    rules:
+      # Test code: unchecked Close in cleanup, plain net.Dial against loopback listeners, and
+      # throwaway sockets are noise, not defects. Production code keeps every one of these checks.
+      - path: _test\.go
+        linters: [errcheck, noctx, bodyclose, gosec]
 formatters:
   enable:
     - gofmt

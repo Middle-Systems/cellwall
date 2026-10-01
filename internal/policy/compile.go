@@ -139,9 +139,13 @@ func (c *Compiled) Match(host string, port int, proto Proto) Decision {
 			return Decision{Reason: ReasonExplicitDeny, Rule: r}
 		}
 	}
-	sawPortMatch := false
+	sawAllow, sawPortMatch := false, false
 	for _, r := range cands {
-		if r.Deny || !r.hasPort(port) {
+		if r.Deny {
+			continue
+		}
+		sawAllow = true
+		if !r.hasPort(port) {
 			continue
 		}
 		sawPortMatch = true
@@ -150,7 +154,15 @@ func (c *Compiled) Match(host string, port int, proto Proto) Decision {
 		}
 		return Decision{Allowed: true, Reason: ReasonRule, Rule: r}
 	}
-	if sawPortMatch {
+	switch {
+	case !sawAllow:
+		// Only deny rules (for other ports) mention this host: nothing allows it.
+		return Decision{Reason: ReasonDefaultDeny}
+	case proto == ProtoHTTP:
+		// The host is allowed, just not over plain HTTP. Saying "port not allowed" here would
+		// send the user to open port 80, which would not help: the answer is to use https.
+		return Decision{Reason: ReasonHTTPNotAllow}
+	case sawPortMatch:
 		return Decision{Reason: ReasonHTTPNotAllow}
 	}
 	return Decision{Reason: ReasonPortNotAllow}
