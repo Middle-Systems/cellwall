@@ -1,0 +1,15 @@
+{
+  "name": {{(printf "cellwall: %s" .Project) | q}},
+  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "{{.ToRoot}}/{{.StateRel}}/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["cellwall", "prepare"]
+}

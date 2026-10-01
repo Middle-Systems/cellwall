@@ -103,6 +103,8 @@ jobs:
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
+      # The generated-topology test builds the agent image, so it needs the gateway image first.
+      - run: make gateway-image
       - run: make e2e
         env:
           CELLWALL_E2E_REQUIRE: "1"

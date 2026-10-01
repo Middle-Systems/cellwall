@@ -40,7 +40,8 @@ var (
 	workspaceSchema = &strictyaml.Schema{Keys: map[string]strictyaml.Field{
 		"mode": {}, "cache_volumes": {Kind: strictyaml.ScalarOrList},
 	}}
-	hardeningSchema = &strictyaml.Schema{Keys: map[string]strictyaml.Field{
+	devcontainerSchema = &strictyaml.Schema{Keys: map[string]strictyaml.Field{"dir": {}}}
+	hardeningSchema    = &strictyaml.Schema{Keys: map[string]strictyaml.Field{
 		"readonly_rootfs": {}, "runtime": {}, "pids_limit": {}, "memory": {}, "cpus": {},
 	}}
 	gatewaySchema = &strictyaml.Schema{Keys: map[string]strictyaml.Field{
@@ -58,6 +59,7 @@ var (
 		"version": {}, "project": {}, "stacks": {Kind: strictyaml.ScalarOrList},
 		"agent":           {Kind: strictyaml.Object, Sub: agentSchema},
 		"workspace":       {Kind: strictyaml.Object, Sub: workspaceSchema},
+		"devcontainer":    {Kind: strictyaml.Object, Sub: devcontainerSchema},
 		"ports":           {Kind: strictyaml.ScalarList},
 		"hardening":       {Kind: strictyaml.Object, Sub: hardeningSchema},
 		"gateway":         {Kind: strictyaml.Object, Sub: gatewaySchema},
@@ -70,7 +72,7 @@ var (
 	// Keys a user-global file may not set. Relaxations and credentials must be visible in the
 	// committed project file, where a reviewer sees them; project identity and ports are
 	// per-repository by nature.
-	projectOnlyKeys = []string{"unsafe", "secrets", "project", "ports", "stacks"}
+	projectOnlyKeys = []string{"unsafe", "secrets", "project", "ports", "stacks", "devcontainer"}
 )
 
 // Parse reads one config file and applies it OVER base, returning a new Config (base is not

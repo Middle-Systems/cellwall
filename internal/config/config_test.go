@@ -93,6 +93,7 @@ func TestLayering(t *testing.T) {
 
 func TestUserGlobalCannotRelaxOrInjectSecrets(t *testing.T) {
 	for _, src := range []string{
+		"version: 1\ndevcontainer: {dir: .devcontainer/cellwall}\n",
 		"version: 1\nunsafe: {publish_all_interfaces: true}\n",
 		"version: 1\nunsafe: {unprotect: [.mcp.json]}\n",
 		"version: 1\nsecrets:\n  - {name: tok, source_file: ~/tok}\n",
@@ -149,6 +150,9 @@ func TestValidateRejects(t *testing.T) {
 		{"ld prefix", "agent: {env: {LD_SOMETHING: x}}\n", "reserved"},
 		{"cellwall prefix", "agent: {env: {CELLWALL_X: x}}\n", "reserved"},
 		{"docker prefix", "agent: {env: {DOCKER_HOST: tcp://x}}\n", "reserved"},
+		{"telemetry env", "agent: {env: {DISABLE_TELEMETRY: '0'}}\n", "reserved"},
+		{"git identity env", "agent: {env: {GIT_AUTHOR_NAME: x}}\n", "reserved"},
+		{"bad devcontainer dir", "devcontainer: {dir: '/etc'}\n", "devcontainer.dir"},
 		{"node_options", "agent: {env: {NODE_OPTIONS: --require /x}}\n", "reserved"},
 		{"bad env name", "agent: {env: {'1BAD': x}}\n", "not a valid variable name"},
 		{"env newline", "agent: {env: {OK: \"a\\nb\"}}\n", "control characters"},

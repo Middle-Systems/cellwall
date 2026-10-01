@@ -1,0 +1,16 @@
+// cellwall:generated sha256=bc18d335d920aaa5690fba55e4a400da7b1b37bab78f482288704857aa6961ac
+{
+  "name": "cellwall: rust-axum",
+  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.cellwall/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["cellwall", "prepare"]
+}

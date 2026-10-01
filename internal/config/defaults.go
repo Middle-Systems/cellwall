@@ -48,7 +48,8 @@ func Default() *Config {
 			Mode:         "bind",
 			CacheVolumes: AutoList{Auto: true},
 		},
-		Hardening: Hardening{PidsLimit: DefaultPidsLimit, Memory: DefaultMemory, CPUs: DefaultCPUs},
+		Devcontainer: Devcontainer{Dir: DevcontainerDir},
+		Hardening:    Hardening{PidsLimit: DefaultPidsLimit, Memory: DefaultMemory, CPUs: DefaultCPUs},
 		Gateway: Gateway{
 			Memory: DefaultGatewayMemory, PidsLimit: DefaultGatewayPids,
 			AuditMaxSizeMB: DefaultAuditMaxSizeMB, AuditMaxFiles: DefaultAuditMaxFiles,

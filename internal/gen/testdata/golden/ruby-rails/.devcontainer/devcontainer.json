@@ -1,0 +1,16 @@
+// cellwall:generated sha256=59b42013ab4411010edd6a66d23e53f800d0ac899898fb709548dd2f4f25101c
+{
+  "name": "cellwall: ruby-rails",
+  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.cellwall/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["cellwall", "prepare"]
+}

@@ -34,6 +34,15 @@ func ClaudeLock(version string) (pkgJSON, lockJSON []byte, ok bool) {
 	return p, l, true
 }
 
+// Toolchain versions inside the pinned images, for warnings when a repository asks for something
+// newer (the generated image sets GOTOOLCHAIN=local, so it never downloads a toolchain itself).
+const (
+	GoVersion     = "1.27.1"
+	NodeVersion   = "24.21.0"
+	RustVersion   = "1.98.1"
+	DotnetVersion = "9.0.318"
+)
+
 // Image names. Each value is "repository:tag@sha256:digest": the tag documents intent, the digest
 // is what is actually pulled (the tag can move; the digest cannot).
 const (

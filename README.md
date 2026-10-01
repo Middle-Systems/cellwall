@@ -1,7 +1,8 @@
 # cellwall
 
-> Working name. Status: **M1 (gateway and policy)** — the egress gateway works and is tested in real
-> containers, but there is no `init`/`up`/`run` yet: you cannot sandbox an agent with one command.
+> Working name. Status: **M2 (init and generation)** — `cellwall init` writes a sandbox for your
+> project and `cellwall prepare` readies it; there is no `up`/`run` wrapper yet, so you start it with
+> `docker compose` or the Dev Containers extension (see below).
 
 cellwall will generate and run a hardened dev container in which a coding agent has no direct
 network path to the internet; all egress goes through a policy-enforcing proxy in a separate
@@ -10,6 +11,14 @@ container the agent cannot modify. See `PROJECT_SPEC.md` for scope and milestone
 ## What exists today
 
 - `cellwall doctor` / `cellwall version`
+- `cellwall init`: detects your stacks (node, python, go, rust, java, dotnet, ruby, php, polyglot
+  repos included) and writes `.cellwall/config.yaml` + `.cellwall/policy.yaml` (yours to edit) and
+  `.devcontainer/` (generated, digest-pinned). It never overwrites a file it did not generate or
+  that you edited, never writes through a symlink, writes nothing if anything conflicts, and a
+  second run changes nothing. `--merge` adds cellwall beside an existing devcontainer setup.
+- `cellwall prepare`: compiles the effective policy, writes the per-session compose override
+  (read-only protected-path mounts, secrets, state hidden from the agent) and pre-creates cache
+  directories as you. Reports protected paths that do not exist, and drift from the config.
 - The **gateway** (`cellwall gateway`, hidden): an HTTP CONNECT / plain-HTTP proxy that enforces a
   deny-by-default hostname policy, refuses IP literals and internal/metadata addresses, checks the
   TLS SNI against the requested host, writes an audit log, and hot-reloads its policy.
@@ -17,6 +26,13 @@ container the agent cannot modify. See `PROJECT_SPEC.md` for scope and milestone
 - End-to-end tests that build the real topology and attack it from the agent container (`make e2e`).
 
 ## Try it
+
+    cellwall init && cellwall prepare
+    docker compose -f .devcontainer/compose.yaml -f .cellwall/state/compose.override.yaml \
+      --env-file .cellwall/state/compose.env up -d
+    docker compose ... exec agent bash
+
+Development:
 
     make build gateway-image
     make test lint        # unit tests, race detector, linters

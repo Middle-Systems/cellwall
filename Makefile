@@ -39,7 +39,7 @@ cross:
 # Builds the gateway image from the host-arch linux binary (the release build uses per-arch binaries).
 gateway-image:
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(shell go env GOARCH) go build -trimpath -ldflags '$(LDFLAGS)' -o dist/cellwall-linux ./cmd/cellwall
-	docker build -f build/gateway/Dockerfile --build-arg BINARY=cellwall-linux -t cellwall-gateway:dev dist
+	docker build -f build/gateway/Dockerfile --build-arg BINARY=cellwall-linux -t cellwall-gateway:dev -t cellwall-gateway:local dist
 
 # End-to-end escape checks against real containers (needs Docker). CI sets CELLWALL_E2E_REQUIRE=1
 # so a missing Docker is a failure there, not a skip.

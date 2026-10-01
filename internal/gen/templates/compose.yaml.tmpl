@@ -1,0 +1,127 @@
+# Sandbox topology for {{.Project}} (cellwall docs: architecture.md).
+#
+#   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
+#
+# The agent has no route out: it is attached only to the `sandbox` network, and the only thing on
+# that network is the gateway, which enforces the policy and runs in a separate container the agent
+# cannot modify. Edit .cellwall/config.yaml and re-run `cellwall init` to change this file.
+#
+# The per-session parts (policy, audit log, protected-path mounts, secrets) live in
+# {{.StateRel}}/compose.override.yaml, written by `cellwall prepare`. Always pass both files.
+name: cw-{{.Project}}
+
+networks:
+  sandbox:
+    # internal: no route to the internet. gateway_mode_ipv4=isolated: the host takes no address on
+    # this bridge, so the agent cannot reach host services bound to 0.0.0.0 (cellwall docs: decisions/0001).
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.gateway_mode_ipv4: isolated
+  egress: {}
+
+volumes:
+  agent-home: {}
+{{- if eq .Cfg.Workspace.Mode "volume"}}
+  workspace: {}
+{{- end}}
+{{- range .Caches}}
+  {{.Volume}}: {}
+{{- end}}
+
+services:
+  gateway:
+    image: ${CELLWALL_GATEWAY_IMAGE:-cellwall-gateway:local}
+    command:
+      - "--policy"
+      - "/etc/cellwall/policy/policy.json"
+      - "--audit-dir"
+      - "/var/log/cellwall"
+      - "--audit-max-size-mb"
+      - "{{.Cfg.Gateway.AuditMaxSizeMB}}"
+      - "--audit-max-files"
+      - "{{.Cfg.Gateway.AuditMaxFiles}}"
+{{- if .Cfg.Unsafe.AuditFailOpen}}
+      - "--audit-fail-open"   # UNSAFE (unsafe.audit_fail_open)
+{{- end}}
+    networks: [sandbox, egress]
+    user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: {{.Cfg.Gateway.Memory}}
+    pids_limit: {{.Cfg.Gateway.PidsLimit}}
+    restart: unless-stopped
+    volumes:
+      # Mount the policy DIRECTORY, never the file: an atomically replaced file would leave a
+      # single-file mount pointing at the old inode and hot reload would silently never fire.
+      - type: bind
+        source: {{.StateEnv}}/policy
+        target: /etc/cellwall/policy
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: {{.StateEnv}}/audit
+        target: /var/log/cellwall
+        bind:
+          create_host_path: false
+
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UID: "${CELLWALL_UID:-1000}"
+        GID: "${CELLWALL_GID:-1000}"
+    image: {{.ImageName}}
+    networks: [sandbox]
+    depends_on:
+      gateway:
+        condition: service_healthy
+    init: true
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    cap_drop: [ALL]
+{{- if .Cfg.Unsafe.CapAdd}}
+    cap_add:   # UNSAFE (unsafe.cap_add)
+{{- range .Cfg.Unsafe.CapAdd}}
+      - {{.}}
+{{- end}}
+{{- end}}
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: {{.Cfg.Hardening.PidsLimit}}
+    mem_limit: {{.Cfg.Hardening.Memory}}
+    cpus: {{.Cfg.Hardening.CPUs}}
+{{- if .Cfg.Hardening.Runtime}}
+    runtime: {{.Cfg.Hardening.Runtime | q}}
+{{- end}}
+    read_only: {{.Cfg.Hardening.ReadonlyRootfs}}
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=1g,mode=1777
+    environment:
+{{- range .Env}}
+      {{.Key}}: {{.Value | q}}
+{{- end}}
+    volumes:
+{{- if eq .Cfg.Workspace.Mode "bind"}}
+      - type: bind
+        source: {{.WorkspaceEnv}}
+        target: /workspace
+        bind:
+          create_host_path: false
+{{- else}}
+      # workspace.mode=volume: the repository lives in this named volume. Seeding it and bringing
+      # changes back with `cellwall fetch` arrive in M5; until then use mode "bind".
+      - type: volume
+        source: workspace
+        target: /workspace
+{{- end}}
+      - type: volume
+        source: agent-home
+        target: /home/dev
+{{- range .Caches}}
+      - type: volume
+        source: {{.Volume}}
+        target: /workspace/{{.Path}}
+{{- end}}

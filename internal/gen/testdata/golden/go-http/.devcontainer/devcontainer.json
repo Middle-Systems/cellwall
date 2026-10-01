@@ -1,0 +1,16 @@
+// cellwall:generated sha256=7b088614620f9817cd9011a94b9605967feff06ceb841d8d745504d36068e8da
+{
+  "name": "cellwall: go-http",
+  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.cellwall/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["cellwall", "prepare"]
+}

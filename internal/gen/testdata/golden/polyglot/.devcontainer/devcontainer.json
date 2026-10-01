@@ -1,0 +1,16 @@
+// cellwall:generated sha256=fde62030bb4fbc19a2ccfbf07fa4746036a032ea925b770b8ca8e3df9b2310cc
+{
+  "name": "cellwall: polyglot",
+  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.cellwall/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["cellwall", "prepare"]
+}

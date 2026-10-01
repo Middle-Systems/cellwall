@@ -46,6 +46,11 @@ var allowedCaps = map[string]bool{"SYS_PTRACE": true}
 func reservedEnv(name string) bool {
 	u := strings.ToUpper(name)
 	switch u {
+	// Names the generator sets from typed options: control them there, not here.
+	case "DISABLE_TELEMETRY", "DISABLE_ERROR_REPORTING", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+		"ENABLE_CLAUDEAI_MCP_SERVERS", "DISABLE_AUTOUPDATER", "DO_NOT_TRACK", "GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL",
+		"GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "GOTOOLCHAIN", "CARGO_HOME", "RUSTUP_HOME", "PYTHONPYCACHEPREFIX":
+		return true
 	case "PATH", "HOME", "USER", "SHELL", "LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT", "LD_DEBUG", "BASH_ENV", "ENV", "IFS",
 		"NODE_OPTIONS", "PYTHONSTARTUP", "PYTHONPATH", "RUBYOPT", "PERL5OPT", "JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS":
 		return true
@@ -128,6 +133,11 @@ func (c *Config) Validate() error {
 		case strings.ContainsAny(v, "\x00\n\r"):
 			bad("agent.env", "value of %q contains control characters", k)
 		}
+	}
+
+	// Devcontainer location.
+	if c.Devcontainer.Dir != DevcontainerDir && c.Devcontainer.Dir != DevcontainerMergeDir {
+		bad("devcontainer.dir", "must be %q or %q (got %q)", DevcontainerDir, DevcontainerMergeDir, c.Devcontainer.Dir)
 	}
 
 	// Workspace.

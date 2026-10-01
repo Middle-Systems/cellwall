@@ -1,0 +1,112 @@
+# cellwall:generated sha256=08399f0345b79543d56f22bebc9499a288fb6a296e74c5efd2f968307346cf3d
+# Sandbox topology for java-maven (cellwall docs: architecture.md).
+#
+#   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
+#
+# The agent has no route out: it is attached only to the `sandbox` network, and the only thing on
+# that network is the gateway, which enforces the policy and runs in a separate container the agent
+# cannot modify. Edit .cellwall/config.yaml and re-run `cellwall init` to change this file.
+#
+# The per-session parts (policy, audit log, protected-path mounts, secrets) live in
+# .cellwall/state/compose.override.yaml, written by `cellwall prepare`. Always pass both files.
+name: cw-java-maven
+
+networks:
+  sandbox:
+    # internal: no route to the internet. gateway_mode_ipv4=isolated: the host takes no address on
+    # this bridge, so the agent cannot reach host services bound to 0.0.0.0 (cellwall docs: decisions/0001).
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.gateway_mode_ipv4: isolated
+  egress: {}
+
+volumes:
+  agent-home: {}
+  cache-target: {}
+
+services:
+  gateway:
+    image: ${CELLWALL_GATEWAY_IMAGE:-cellwall-gateway:local}
+    command:
+      - "--policy"
+      - "/etc/cellwall/policy/policy.json"
+      - "--audit-dir"
+      - "/var/log/cellwall"
+      - "--audit-max-size-mb"
+      - "50"
+      - "--audit-max-files"
+      - "5"
+    networks: [sandbox, egress]
+    user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    pids_limit: 256
+    restart: unless-stopped
+    volumes:
+      # Mount the policy DIRECTORY, never the file: an atomically replaced file would leave a
+      # single-file mount pointing at the old inode and hot reload would silently never fire.
+      - type: bind
+        source: ${CELLWALL_STATE:-../.cellwall/state}/policy
+        target: /etc/cellwall/policy
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${CELLWALL_STATE:-../.cellwall/state}/audit
+        target: /var/log/cellwall
+        bind:
+          create_host_path: false
+
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UID: "${CELLWALL_UID:-1000}"
+        GID: "${CELLWALL_GID:-1000}"
+    image: cw-java-maven-agent:local
+    networks: [sandbox]
+    depends_on:
+      gateway:
+        condition: service_healthy
+    init: true
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 1024
+    mem_limit: 8g
+    cpus: 4
+    read_only: false
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=1g,mode=1777
+    environment:
+      ALL_PROXY: "http://gateway:3128"
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+      DISABLE_AUTOUPDATER: "1"
+      DISABLE_ERROR_REPORTING: "1"
+      DISABLE_TELEMETRY: "1"
+      ENABLE_CLAUDEAI_MCP_SERVERS: "false"
+      HTTPS_PROXY: "http://gateway:3128"
+      HTTP_PROXY: "http://gateway:3128"
+      LANG: "C.UTF-8"
+      NO_PROXY: "gateway,localhost,127.0.0.1"
+      all_proxy: "http://gateway:3128"
+      http_proxy: "http://gateway:3128"
+      https_proxy: "http://gateway:3128"
+      no_proxy: "gateway,localhost,127.0.0.1"
+    volumes:
+      - type: bind
+        source: ${CELLWALL_WORKSPACE:-..}
+        target: /workspace
+        bind:
+          create_host_path: false
+      - type: volume
+        source: agent-home
+        target: /home/dev
+      - type: volume
+        source: cache-target
+        target: /workspace/target

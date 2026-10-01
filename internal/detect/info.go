@@ -84,10 +84,14 @@ type Plan struct {
 }
 
 // PlanFor derives presets, caches, ports and hints. gitignored reports whether a workspace-relative
-// directory is excluded from version control, and exists whether it is present on disk: a cache
-// volume is only planned for a directory that is gitignored or absent, because a volume mounted
-// over a tracked directory would hide committed files.
-func PlanFor(r *Result, gitignored func(dir string) bool, exists func(dir string) bool) Plan {
+// directory is excluded from version control, and occupied whether it exists and has content (or is
+// not a directory at all).
+//
+// A cache volume is planned for a directory that is gitignored, or has nothing in it, because a
+// volume mounted over a directory with tracked content would hide committed files. "Empty" counts
+// as safe on purpose: `prepare` pre-creates cache directories (spike S10), and judging by mere
+// existence would make the plan change after prepare ran.
+func PlanFor(r *Result, gitignored func(dir string) bool, occupied func(dir string) bool) Plan {
 	var p Plan
 	presets := map[string]bool{}
 	caches := map[string]bool{}
@@ -95,11 +99,11 @@ func PlanFor(r *Result, gitignored func(dir string) bool, exists func(dir string
 	hints := map[string]bool{}
 
 	addCache := func(dir string) {
-		if gitignored(dir) || !exists(dir) {
+		if gitignored(dir) || !occupied(dir) {
 			caches[dir] = true
 			return
 		}
-		p.Notes = append(p.Notes, dir+"/ exists and is tracked by git, so it was not moved to a cache volume (add it to .gitignore to enable)")
+		p.Notes = append(p.Notes, dir+"/ has content that is not gitignored, so it was not moved to a cache volume (add it to .gitignore to enable)")
 	}
 	for _, s := range r.Stacks {
 		info, ok := InfoFor(s.Name)
@@ -123,8 +127,11 @@ func PlanFor(r *Result, gitignored func(dir string) bool, exists func(dir string
 		}
 		for _, fw := range s.Frameworks {
 			if f, ok := FrameworkFor(fw); ok {
+				// One hint per port: fastapi and uvicorn both serve 8000 and one note is enough.
+				if !ports[f.Port] {
+					hints[f.Name+": "+f.BindHint] = true
+				}
 				ports[f.Port] = true
-				hints[f.Name+": "+f.BindHint] = true
 			}
 		}
 	}

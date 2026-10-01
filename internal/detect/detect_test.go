@@ -194,13 +194,13 @@ func TestPythonFrameworkWordBoundaries(t *testing.T) {
 	}
 }
 
-func plan(t *testing.T, fixture string, ignored map[string]bool, existing map[string]bool) Plan {
+func plan(t *testing.T, fixture string, ignored map[string]bool, occupied map[string]bool) Plan {
 	t.Helper()
 	r, err := Detect(fixture2(t, fixture))
 	if err != nil {
 		t.Fatal(err)
 	}
-	return PlanFor(r, func(d string) bool { return ignored[d] }, func(d string) bool { return existing[d] })
+	return PlanFor(r, func(d string) bool { return ignored[d] }, func(d string) bool { return occupied[d] })
 }
 
 func fixture2(t *testing.T, name string) string { return fixture(t, name) }
@@ -230,10 +230,13 @@ func TestPlan(t *testing.T) {
 	if !reflect.DeepEqual(p.Ports, []int{5173, 8000}) {
 		t.Errorf("ports %v", p.Ports)
 	}
+	if len(p.BindHints) != 2 {
+		t.Errorf("fastapi and uvicorn share port 8000, so one hint for it, plus vite's: %v", p.BindHints)
+	}
 }
 
 func TestPlanNeverCoversTrackedDirectories(t *testing.T) {
-	// node_modules exists and is NOT gitignored: a volume over it would hide committed files.
+	// node_modules has content and is NOT gitignored: a volume over it would hide committed files.
 	p := plan(t, "node-vite", nil, map[string]bool{"node_modules": true})
 	if len(p.Caches) != 0 {
 		t.Errorf("tracked directory was planned as a cache volume: %v", p.Caches)
@@ -241,7 +244,7 @@ func TestPlanNeverCoversTrackedDirectories(t *testing.T) {
 	if len(p.Notes) == 0 || !strings.Contains(p.Notes[0], "node_modules") {
 		t.Errorf("the user must be told why: %v", p.Notes)
 	}
-	// Absent directories are fine (nothing to hide).
+	// Absent or empty directories are fine (nothing to hide).
 	if p := plan(t, "node-vite", nil, nil); !reflect.DeepEqual(p.Caches, []string{"node_modules"}) {
 		t.Errorf("%v", p.Caches)
 	}

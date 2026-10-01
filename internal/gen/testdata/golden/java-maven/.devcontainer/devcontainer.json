@@ -1,0 +1,16 @@
+// cellwall:generated sha256=8cf858a637f8552e35cac65b6c3b41697487c222e2af8324607d13772c871d09
+{
+  "name": "cellwall: java-maven",
+  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.cellwall/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["cellwall", "prepare"]
+}

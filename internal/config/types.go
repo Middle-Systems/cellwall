@@ -33,9 +33,11 @@ type Config struct {
 	Stacks    AutoList  `yaml:"stacks,omitempty" json:"stacks"`
 	Agent     Agent     `yaml:"agent,omitempty" json:"agent"`
 	Workspace Workspace `yaml:"workspace,omitempty" json:"workspace"`
-	Ports     []int     `yaml:"ports,omitempty" json:"ports"`
-	Hardening Hardening `yaml:"hardening,omitempty" json:"hardening"`
-	Gateway   Gateway   `yaml:"gateway,omitempty" json:"gateway"`
+	// Devcontainer says where the generated container files live.
+	Devcontainer Devcontainer `yaml:"devcontainer,omitempty" json:"devcontainer"`
+	Ports        []int        `yaml:"ports,omitempty" json:"ports"`
+	Hardening    Hardening    `yaml:"hardening,omitempty" json:"hardening"`
+	Gateway      Gateway      `yaml:"gateway,omitempty" json:"gateway"`
 	// ProtectedPaths are ADDITIONAL read-only paths. The built-in defaults (DefaultProtected) are
 	// always protected; they can only be removed through unsafe.unprotect, never by editing this
 	// list, so copying a config and trimming a line cannot silently weaken the sandbox.
@@ -66,6 +68,19 @@ type Agent struct {
 	// by digest unless unsafe.unpinned_base_image is set.
 	BaseImage string `yaml:"base_image,omitempty" json:"base_image"`
 }
+
+// Devcontainer locates the generated files.
+type Devcontainer struct {
+	// Dir is ".devcontainer" (the default) or ".devcontainer/cellwall", which `init --merge` uses so
+	// that a repository's own devcontainer configuration is left untouched.
+	Dir string `yaml:"dir,omitempty" json:"dir"`
+}
+
+// Devcontainer directories init may use.
+const (
+	DevcontainerDir      = ".devcontainer"
+	DevcontainerMergeDir = ".devcontainer/cellwall"
+)
 
 // Workspace configures how the repository reaches the agent container.
 type Workspace struct {
