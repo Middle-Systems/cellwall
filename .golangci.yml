@@ -23,6 +23,9 @@ linters:
       # throwaway sockets are noise, not defects. Production code keeps every one of these checks.
       - path: _test\.go
         linters: [errcheck, noctx, bodyclose, gosec]
+      # The DNS fixture is a throwaway server for the e2e containers; it must bind :53 everywhere.
+      - path: ^test/e2e/fixtures/
+        linters: [errcheck, noctx, gosec]
 formatters:
   enable:
     - gofmt

@@ -5,6 +5,7 @@ added. `go mod verify` and `govulncheck` gate merges.
 
 | Module | Why |
 |---|---|
+| `go.yaml.in/yaml/v3` | Policy files are YAML (spec section 7) and Go has no YAML parser. This is the maintained fork of `gopkg.in/yaml.v3` under the YAML organisation. The Node API gives line/column for errors and lets the loader reject anchors, aliases, tags and duplicate keys before decoding. |
 | `github.com/spf13/cobra` | Subcommands, flag parsing and shell completions; reimplementing these is more code and more bugs than the dependency (spec section 6). Pulls in `spf13/pflag` and, for Windows, `inconshreveable/mousetrap` (both indirect). |
 
 ## CI actions

@@ -90,3 +90,49 @@ jobs:
       # root is needed for the iptables DNS meter in s2.
       - name: Run spikes
         run: sudo -E env "PATH=$PATH" make spikes
+
+  # Real containers: the gateway image, an internal+isolated sandbox network and an agent container,
+  # attacked from the agent side (escape-suite checks 3-7 and 12). CELLWALL_E2E_REQUIRE makes a
+  # missing Docker a failure instead of a silent skip.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      - run: make e2e
+        env:
+          CELLWALL_E2E_REQUIRE: "1"
+
+  # Fuzzing the code that parses attacker-controlled bytes (ClientHello, CONNECT targets) and the
+  # policy matcher. A short pass on every change; longer runs belong in a scheduled job.
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      - run: make fuzz FUZZTIME=20s
+
+  gateway-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      - run: make gateway-image
+      - name: Image is minimal and runs as non-root
+        run: |
+          docker image inspect cellwall-gateway:dev --format 'user={{.Config.User}} entrypoint={{.Config.Entrypoint}} size={{.Size}}'
+          test "$(docker image inspect cellwall-gateway:dev --format '{{.Config.User}}')" = "65532:65532"
+          # A scratch image has no shell to exec into.
+          ! docker run --rm --entrypoint /bin/sh cellwall-gateway:dev -c true 2>/dev/null

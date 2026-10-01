@@ -7,7 +7,7 @@ LDFLAGS := -s -w -X $(MODULE)/internal/version.Version=$(VERSION) \
            -X $(MODULE)/internal/version.Commit=$(COMMIT) \
            -X $(MODULE)/internal/version.Date=$(DATE)
 
-.PHONY: build test lint vuln verify-mod spikes cross all
+.PHONY: build test lint vuln verify-mod spikes cross all e2e fuzz gateway-image
 all: lint test build
 
 build:
@@ -35,3 +35,21 @@ spikes:
 cross:
 	for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do \
 	  GOOS=$${t%/*} GOARCH=$${t#*/} CGO_ENABLED=0 go build -trimpath -o /dev/null ./cmd/cellwall || exit 1; done
+
+# Builds the gateway image from the host-arch linux binary (the release build uses per-arch binaries).
+gateway-image:
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(shell go env GOARCH) go build -trimpath -ldflags '$(LDFLAGS)' -o dist/cellwall-linux ./cmd/cellwall
+	docker build -f build/gateway/Dockerfile --build-arg BINARY=cellwall-linux -t cellwall-gateway:dev dist
+
+# End-to-end escape checks against real containers (needs Docker). CI sets CELLWALL_E2E_REQUIRE=1
+# so a missing Docker is a failure there, not a skip.
+e2e:
+	go test -tags e2e -count=1 -timeout 10m ./test/e2e/...
+
+# Short fuzzing pass over every fuzz target; FUZZTIME=2m for a longer local run.
+FUZZTIME ?= 15s
+fuzz:
+	set -e; for t in FuzzNormalizeHost FuzzMatch FuzzPattern FuzzParse; do \
+	  go test ./internal/policy -run '^$$' -fuzz "^$$t$$" -fuzztime $(FUZZTIME); done; \
+	for t in FuzzReadClientHello FuzzParseClientHello FuzzParseConnectTarget; do \
+	  go test ./internal/proxy -run '^$$' -fuzz "^$$t$$" -fuzztime $(FUZZTIME); done
