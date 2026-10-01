@@ -1,6 +1,6 @@
 # 0002: Protected paths are enforced by mount pinning, not just read-only mounts
 
-Status: accepted for Linux; macOS/Windows pending (S4)
+Status: accepted for Linux; macOS/Windows pending (S4). Point 3 (detect, not auto-create, missing protected paths) confirmed by the maintainer.
 
 ## Context
 Spike S4: a read-only nested mount does not prevent renaming its parent directory, so

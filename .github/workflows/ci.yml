@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main, "claude/**"]
+    branches: [master, "claude/**"]
   pull_request:
 
 # Least privilege: nothing here needs to write to the repo.

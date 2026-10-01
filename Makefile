@@ -29,7 +29,7 @@ verify-mod:
 # Needs Docker (and root for the DNS meter in s2). These encode security claims; see docs/spikes.md.
 spikes:
 	# Run every spike even if one fails, so a single CI run shows all results; fail at the end.
-	rc=0; for s in s1_internal_network s1b_host_reachability s2_dns s3_ports s4_protected_paths s7_build_cache; do \
+	rc=0; for s in s1_internal_network s1b_host_reachability s2_dns s3_ports s4_protected_paths s7_build_cache s9_policy_reload_mount; do \
 	  echo "=== $$s"; bash spikes/$$s.sh || rc=1; done; exit $$rc
 
 cross:

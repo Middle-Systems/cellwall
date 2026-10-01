@@ -17,6 +17,7 @@ Rancher Desktop** — those columns are explicitly *pending*.
 | S6 | **pending** | n/a | Needs an authenticated agent session with a permissive policy. |
 | S7 | done (Linux/Docker) | **GO** | Warm rebuild 0.7 s vs 7 s cold; layer order matters. |
 | S8 | **pending** | n/a | Needs macOS and Windows hosts. |
+| S9 | done (Linux/Docker) | **GO, design change** | Single-file bind mounts go stale on atomic replace; mount the policy *directory*. |
 
 ## S1 — internal network isolation (`spikes/s1_internal_network.sh`, `s1b_host_reachability.sh`)
 
@@ -90,6 +91,17 @@ Other findings:
 Cold 7.05 s, warm no-op 0.72 s, bumping an `ARG` late in the file re-runs everything after it
 (3.4 s on a fresh run; the script's INFO line depends on what is already in the BuildKit cache, so a repeat run reuses the earlier `AGENT_VERSION=2` layer and reports ~0.8 s — only the PASS assertion is stable). Rule for the generated Dockerfile: slowest, rarest-changing steps first; agent install
 and version args last; use `RUN --mount=type=cache` for package caches.
+
+## S9 — policy hot reload vs bind mounts (`spikes/s9_policy_reload_mount.sh`)
+
+Added during M1. The CLI (and any editor) replaces files by write-temp-then-rename, which swaps the
+inode. After an atomic replace the single-file bind mount still showed the **old** contents (`v1`)
+while a directory bind mount showed the new file (`v2`); an in-place write is visible through both,
+which is why a casual test would miss the hazard. Consequence (ADR 0004): the gateway mounts the
+policy *directory* read-only and detects changes by polling (inotify across this boundary is not
+something to rely on), and the generated compose must not mount `policy.json` as a single file —
+Appendix A of the spec does, which is wrong for hot reload. Tested on Linux only; Docker Desktop's
+file sharing may behave differently (S5).
 
 ## Pending spikes
 
