@@ -1,0 +1,92 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+# Least privilege: nothing here needs to write to the repo.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go mod verify
+      - run: go vet ./...
+      # Non-engine commands must work on every OS; engine-dependent tests skip themselves.
+      - run: go test -race -count=1 ./...
+        if: runner.os != 'Windows'
+      - run: go test -count=1 ./...
+        if: runner.os == 'Windows'
+      - name: Build static binary and smoke-test
+        shell: bash
+        run: |
+          CGO_ENABLED=0 go build -trimpath -o dist/cellwall ./cmd/cellwall
+          ./dist/cellwall version
+          ./dist/cellwall version --json
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.5.0
+
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  cross-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: make cross
+
+  # The spikes encode the security claims the topology depends on (see docs/spikes.md).
+  # Running them on every change turns "we verified this once" into a regression test.
+  topology-spikes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Show engine
+        run: docker version && docker compose version
+      # root is needed for the iptables DNS meter in s2.
+      - name: Run spikes
+        run: sudo -E env "PATH=$PATH" make spikes

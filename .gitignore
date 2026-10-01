@@ -1,0 +1,7 @@
+/dist/
+/bin/
+*.test
+*.out
+coverage.*
+.cellwall/state/
+.DS_Store
