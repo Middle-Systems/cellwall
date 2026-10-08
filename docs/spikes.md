@@ -13,8 +13,8 @@ Rancher Desktop** — those columns are explicitly *pending*.
 | S2 | done (Linux/Docker) | **GO** | No external DNS resolution and no port-53 packets leave the host from the sandbox network. |
 | S3 | done (Linux/Docker) | **GO** | Publishing from an internal-only container is silently dead; gateway on both networks forwards fine. |
 | S4 | Linux done; macOS/Windows **pending** | **GO, with required changes** | Nested ro mounts work, but protected paths can be evaded by renaming a parent directory. See ADR 0002. |
-| S5 | **partial** | Linux | Docker Engine on Linux passes every row (below). Other engines need their hosts: run `spikes/s5_engine_matrix.sh`, which prints a table row. |
-| S6 | **pending** | n/a | Needs an authenticated agent session; procedure in `spikes/s6_agent_endpoints.md`. |
+| S5 | **partial** | Linux (Windows: first run was invalid, see note) | Docker Engine on Linux passes every row (below). Other engines need their hosts: run `spikes/s5_engine_matrix.sh`, which prints a table row. |
+| S6 | **partial** | Windows | One authenticated Claude Code session on Docker Desktop: the preset's hosts were enough to sign in and work (including a web-search tool call). Two optional hosts were denied at start-up without visible effect. See below. |
 | S7 | done (Linux/Docker) | **GO** | Warm rebuild 0.7 s vs 7 s cold; layer order matters. |
 | S8 | **partial** | Linux, Windows | Windows (Docker Desktop, bind from the Windows filesystem) is 65-300x slower than a volume; Linux shows no consistent difference. macOS and bind-from-WSL-filesystem pending. |
 | S9 | done (Linux/Docker) | **GO, design change** | Single-file bind mounts go stale on atomic replace; mount the policy *directory*. |
@@ -122,6 +122,13 @@ Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5
 
 ## Pending spikes
 
+- **S5 on Windows, first run (Docker Desktop 4.92.0, Git Bash): not valid, do not use.** The
+  host-side tools and paths the spikes assumed (`hostname -I`, `wget`, `nc`, POSIX temp paths that
+  the Windows daemon cannot resolve) did not exist, so controls failed and results read NO/ERROR.
+  Only DNS no-leak (yes) and the read-only evasion checks inside s4 (all PASS) ran meaningfully.
+  The scripts now use portable helpers (`spikes/lib.sh`), and the host-reachability spike is
+  reported n/a on engines that run in a VM; that claim is covered there by `cellwall verify`
+  (check 10). A re-run is needed.
 - **S5 engine matrix:** run `spikes/s5_engine_matrix.sh` on each engine (it runs
   `s1b_host_reachability.sh`, `s2_dns.sh`, `s3_ports.sh`, `s4_protected_paths.sh` and
   `s10_nested_mounts.sh` and prints the row) and fill in:
@@ -133,7 +140,32 @@ Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5
   | Colima / OrbStack / Rancher Desktop | macOS | pending | pending | pending | pending | |
   | Podman (rootless) | Linux | pending | pending | pending | pending | `gateway_mode_ipv4` likely unsupported |
 
-- **S6 endpoints:** follow `spikes/s6_agent_endpoints.md` (needs valid agent credentials).
+- **S6 endpoints:** procedure in `spikes/s6_agent_endpoints.md`.
+
+  First observation (Windows 10, Docker Desktop 4.92.0, volume mode, Claude Code with the shipped
+  `claude` preset and no other rules; audit log from the gateway, one sign-in plus a short
+  conversation that included a web-search tool call):
+
+  | host | decision | notes |
+  |---|---|---|
+  | `api.anthropic.com:443` | allowed (preset rule 0) | the model API; carried all traffic, including the web search (it runs server-side, so no extra host) |
+  | `platform.claude.com:443` | allowed (preset rule 2) | contacted at start-up and again later; short connections |
+  | `claude.ai:443` | not contacted | in the preset for sign-in; not seen in this session, so keep it until a fresh sign-in has been observed |
+  | `downloads.claude.ai:443` | denied (default-deny) | once, a few seconds after start-up; no visible effect |
+  | `github.com:443` | denied (default-deny) | once, right after the one above; no visible effect |
+
+  The agent worked normally with the two denied hosts blocked. What they are for (probably an
+  update check and a plugin or release lookup) is not established from this log; the preset
+  stays as it is, and `cellwall logs --denied` lists them with the allow command for anyone who
+  wants them.
+
+  Also seen: long-lived tunnels to `api.anthropic.com` and `platform.claude.com` were closed by
+  the gateway's 120 s `idle_timeout` while idle (`reason: idle-timeout`), and the client simply
+  reconnected. A single request that is silent for longer than that would be cut; raise
+  `limits.idle_timeout` if a long non-streaming call is ever interrupted.
+
+  Still to do for S6: a fresh sign-in (to see whether `claude.ai` is used), a session that uses
+  tools needing the network (package installs, git over https), and the other agents.
 - **S8 filesystem timing:** `spikes/s8_fs_timing.sh [--npm] [--dir <host path>]` on macOS and
   Windows (run it once with `--dir` on the Windows/macOS filesystem and, on Windows, once inside
   WSL for comparison).

@@ -19,7 +19,7 @@ if docker run -d --name "${RUN_ID}-pub" --network "$SANDBOX" -p "127.0.0.1:${POR
   defer "docker rm -f ${RUN_ID}-pub"
   sleep 1
   expect_fail "A: host can NOT reach port published from internal-only container" \
-    wget -q -T 3 -O- "http://127.0.0.1:${PORT_A}/"
+    http_get "http://127.0.0.1:${PORT_A}/"
   result INFO "A: docker accepted -p on internal-only container, port is dead (not an error)"
 else
   result PASS "A: docker rejected/failed -p on internal-only container: $(head -c 200 /tmp/${RUN_ID}.err)"
@@ -33,7 +33,7 @@ docker run -d --name "${RUN_ID}-gateway" --network "$SANDBOX" --network-alias ga
 docker network connect "$EGRESS" "${RUN_ID}-gateway"
 sleep 2
 # Publishing must work once the container also has a non-internal network attached.
-body="$(printf 'GET / HTTP/1.0\r\n\r\n' | nc -w 3 127.0.0.1 "$PORT_B" 2>/dev/null || true)"
+body="$(http_get "http://127.0.0.1:${PORT_B}/" 2>/dev/null || true)"
 case "$body" in
   *cellwall-spike-ok*) result PASS "B: host 127.0.0.1:$PORT_B reaches agent through gateway forwarder" ;;
   *) result FAIL "B: forward path failed (body='${body:0:80}')"
@@ -41,8 +41,12 @@ case "$body" in
 esac
 
 # C) loopback-only publish must not be reachable via other host addresses
-OTHER="$(hostname -I | awk '{print $1}')"
-expect_fail "C: published port NOT reachable on non-loopback host address $OTHER" nc -w 2 -z "$OTHER" "$PORT_B"
+OTHER="$(host_ips | grep -v '^127\.' | head -1)"
+if [ -n "$OTHER" ]; then
+  expect_fail "C: published port NOT reachable on non-loopback host address $OTHER" tcp_open "$OTHER" "$PORT_B"
+else
+  result INFO "C: skipped, no non-loopback host address found"
+fi
 
 # D) the published-port path should work even when the gateway was created attached to ONLY the
 #    internal network and the egress network is connected later (compose attaches both at create).

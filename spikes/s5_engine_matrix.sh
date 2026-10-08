@@ -28,7 +28,15 @@ run() { # run <script> -> yes | NO | ERROR, with the log kept in /tmp
 
 echo "engine:  $engine ($osname), host $host, compose $compose${rootless:+, rootless}"
 echo "running the spikes (a minute or two)..."
-host_blocked=$(run s1b_host_reachability.sh)
+# s1b starts a service on the *host* and probes it from a container on the engine's bridge. That
+# only means something when the engine shares the shell's network namespace (Linux). Docker
+# Desktop and similar run the engine in a VM, where the bridge is not on the host at all: the
+# host-reachability claim there is covered by `cellwall verify` (check 10), not by this spike.
+if docker info --format '{{.OperatingSystem}}' 2>/dev/null | grep -qi 'desktop' || [ "$(uname -s | cut -c1-5)" != Linux ]; then
+  host_blocked="n/a (engine in a VM: use cellwall verify, check 10)"
+else
+  host_blocked=$(run s1b_host_reachability.sh)
+fi
 dns=$(run s2_dns.sh)
 ports=$(run s3_ports.sh)
 mounts=$(run s4_protected_paths.sh)
@@ -40,9 +48,9 @@ echo "|---|---|---|---|---|---|---|---|"
 echo "| $engine | $host / $osname | $host_blocked | $dns | $ports | $mounts | $nested | compose $compose${rootless:+; rootless} |"
 echo
 echo "Logs: /tmp/s5-*.log (under Git Bash that is %TEMP%). A NO or ERROR needs the log read before it goes in the table."
-for pair in "s1b_host_reachability.sh:$host_blocked" "s2_dns.sh:$dns" "s3_ports.sh:$ports" "s4_protected_paths.sh:$mounts" "s10_nested_mounts.sh:$nested"; do
+for pair in "s1b_host_reachability.sh:${host_blocked%% *}" "s2_dns.sh:$dns" "s3_ports.sh:$ports" "s4_protected_paths.sh:$mounts" "s10_nested_mounts.sh:$nested"; do
   sc="${pair%%:*}"; res="${pair##*:}"
-  if [ "$res" != yes ]; then
+  if [ "$res" != yes ] && [ "$res" != n/a ]; then
     echo
     echo "=== $sc: $res (failing lines and the last 25 lines of its log)"
     grep -E '^(FAIL|ERROR)|VACUOUS' "/tmp/s5-$sc.log" | head -10

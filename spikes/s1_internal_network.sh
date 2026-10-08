@@ -53,6 +53,6 @@ defer "kill $HOST_PID"
 sleep 1
 expect_ok   "(control) host service is reachable from host on 127.0.0.1:18999" nc -w 2 -z 127.0.0.1 18999
 if [[ "$SBX_GW" =~ ^[0-9.]+$ ]]; then expect_fail "agent cannot reach host 0.0.0.0 service via sandbox gateway $SBX_GW:18999" agent nc -w 2 -z "$SBX_GW" 18999; fi
-for hip in $(hostname -I); do expect_fail "agent cannot reach host service via host address $hip:18999" agent nc -w 2 -z "$hip" 18999; done
+for hip in $(host_ips); do expect_fail "agent cannot reach host service via host address $hip:18999" agent nc -w 2 -z "$hip" 18999; done
 expect_fail "agent cannot reach host 0.0.0.0 service via default bridge $HOST_IP:18999" agent nc -w 2 -z "$HOST_IP" 18999
 summary

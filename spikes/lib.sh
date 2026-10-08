@@ -6,6 +6,30 @@ set -uo pipefail
 # before docker sees them. Harmless elsewhere; required for the spikes to mean anything there.
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
 
+# Under Git Bash, mktemp returns /tmp/tmp.X, a path only the MSYS layer understands; the Docker
+# daemon is a Windows service and needs C:/Users/... . Hand back the mixed form, which bash also
+# accepts, so one path works for both.
+if command -v cygpath >/dev/null 2>&1; then
+  mktemp() { local p; p="$(command mktemp "$@")" || return $?; cygpath -m "$p"; }
+fi
+
+# host_ips: the host's IPv4 addresses, one per line (hostname -I is GNU-only).
+host_ips() {
+  local out
+  if out="$(hostname -I 2>/dev/null)" && [ -n "$out" ]; then tr ' ' '\n' <<<"$out" | grep -E '^[0-9.]+$'; return; fi
+  if command -v ipconfig >/dev/null 2>&1; then ipconfig | tr -d '\r' | awk -F': *' '/IPv4/{print $2}'; return; fi
+}
+
+# tcp_open <host> <port>: succeeds if a TCP connection opens within 2s (no nc needed).
+tcp_open() { timeout 2 bash -c "exec 3<>/dev/tcp/$1/$2" 2>/dev/null; }
+
+# http_get <url>: prints the body (curl or wget, whichever the host has).
+http_get() {
+  if command -v curl >/dev/null 2>&1; then curl -fsS -m 3 "$1"
+  elif command -v wget >/dev/null 2>&1; then wget -q -T 3 -O- "$1"
+  else echo "http_get: neither curl nor wget found" >&2; return 127; fi
+}
+
 IMAGE="${SPIKE_IMAGE:-busybox:1.36}"
 RUN_ID="cwspike$$"
 PASS=0
