@@ -5,6 +5,7 @@ package compose
 import (
 	"bytes"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -108,5 +109,24 @@ func TestIsTerminalIsFalseForPipesAndNull(t *testing.T) {
 	defer func() { _ = null.Close() }()
 	if IsTerminal(null) {
 		t.Error("/dev/null is not a terminal")
+	}
+}
+
+func TestLFReaderStripsCRBeforeLF(t *testing.T) {
+	for in, want := range map[string]string{
+		"a\r\nb\r\n": "a\nb\n",
+		"a\rb":       "a\rb", // a lone CR is data
+		"a\r":        "a\r",
+		"\r\n\r\n":   "\n\n",
+	} {
+		got, err := io.ReadAll(LFReader(strings.NewReader(in)))
+		if err != nil || string(got) != want {
+			t.Errorf("%q -> %q (%v), want %q", in, got, err, want)
+		}
+	}
+	// A CR and its LF arriving in separate reads still collapse.
+	r := LFReader(io.MultiReader(strings.NewReader("x\r"), strings.NewReader("\ny")))
+	if got, _ := io.ReadAll(r); string(got) != "x\ny" {
+		t.Errorf("split CRLF -> %q", got)
 	}
 }

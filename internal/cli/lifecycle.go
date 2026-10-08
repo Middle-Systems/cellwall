@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -29,6 +30,9 @@ func hostEnv(cmd *cobra.Command, noTTY bool) sandbox.Env {
 		if fout, ok := out.(*os.File); ok {
 			tty = !noTTY && compose.IsTerminal(fin) && compose.IsTerminal(fout)
 		}
+	}
+	if !tty && runtime.GOOS == "windows" {
+		in = compose.LFReader(in)
 	}
 	return sandbox.Env{
 		Runner:    engine.ExecRunner{},

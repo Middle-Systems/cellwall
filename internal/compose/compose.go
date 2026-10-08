@@ -166,9 +166,12 @@ func exitCode(err error) (int, error) {
 	return 1, nil
 }
 
-// IsTerminal reports whether f is an interactive terminal. It uses only the standard library, so
-// it treats any character device other than the null device as a terminal.
-func IsTerminal(f *os.File) bool {
+// IsTerminal reports whether f is an interactive terminal (see isTerminal for the per-OS test).
+func IsTerminal(f *os.File) bool { return isTerminal(f) }
+
+// charDeviceTerminal treats any character device other than the null device as a terminal. It uses
+// only the standard library.
+func charDeviceTerminal(f *os.File) bool {
 	fi, err := f.Stat()
 	if err != nil || fi.Mode()&os.ModeCharDevice == 0 {
 		return false
@@ -177,4 +180,46 @@ func IsTerminal(f *os.File) bool {
 		return false
 	}
 	return true
+}
+
+// LFReader returns r with every CRLF turned into LF. A Windows console that is not a real console
+// (an IDE terminal on pipes) sends CRLF on Enter, which a Linux shell reads as a stray carriage
+// return in every command.
+func LFReader(r io.Reader) io.Reader { return &lfReader{r: r} }
+
+type lfReader struct {
+	r      io.Reader
+	holdCR bool // a trailing CR from the previous read, not yet known to precede LF
+}
+
+func (l *lfReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+	buf := make([]byte, len(p))
+	for {
+		n, err := l.r.Read(buf)
+		out := p[:0]
+		for i := 0; i < n; i++ {
+			c := buf[i]
+			if l.holdCR {
+				l.holdCR = false
+				if c != '\n' {
+					out = append(out, '\r')
+				}
+			}
+			if c == '\r' {
+				l.holdCR = true
+				continue
+			}
+			out = append(out, c)
+		}
+		if err != nil && l.holdCR {
+			l.holdCR = false
+			out = append(out, '\r')
+		}
+		if len(out) > 0 || err != nil {
+			return len(out), err
+		}
+	}
 }
