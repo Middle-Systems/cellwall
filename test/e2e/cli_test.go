@@ -63,7 +63,16 @@ type result struct {
 // sandbox to be torn down (with its volumes) when the test ends.
 func newProject(t *testing.T, fixture string) *project {
 	t.Helper()
-	p := &project{t: t, bin: staticBinary(t), ws: t.TempDir()}
+	// A distinct directory name gives each test its own compose project, images and volumes.
+	name := strings.NewReplacer("/", "-", "_", "-").Replace(strings.ToLower(t.Name()))
+	if len(name) > 36 {
+		name = name[:36]
+	}
+	ws := filepath.Join(t.TempDir(), name)
+	if err := os.MkdirAll(ws, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	p := &project{t: t, bin: staticBinary(t), ws: ws}
 	copyTree(t, filepath.Join(repoRoot(t), "test", "fixtures", fixture), p.ws)
 	if err := os.MkdirAll(filepath.Join(p.ws, ".git", "hooks"), 0o755); err != nil {
 		t.Fatal(err)

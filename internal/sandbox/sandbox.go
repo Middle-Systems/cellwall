@@ -4,6 +4,7 @@
 package sandbox
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/middle-systems/cellwall/internal/compose"
@@ -51,6 +53,47 @@ type UpResult struct {
 	Prepare      *prepare.Result
 	GatewayImage gatewayimage.Outcome
 	Project      *compose.Project
+}
+
+// delayedWriter swallows output until it has been going for a while, then shows everything and
+// streams the rest: a no-op image build stays silent, a real one shows live progress.
+type delayedWriter struct {
+	mu    sync.Mutex
+	w     io.Writer
+	after time.Duration
+	start time.Time
+	buf   bytes.Buffer
+	live  bool
+}
+
+func newDelayedWriter(w io.Writer, after time.Duration) *delayedWriter {
+	return &delayedWriter{w: w, after: after, start: time.Now()}
+}
+
+func (d *delayedWriter) Write(p []byte) (int, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.live {
+		return d.w.Write(p)
+	}
+	d.buf.Write(p)
+	if time.Since(d.start) >= d.after {
+		d.live = true
+		_, _ = d.w.Write(d.buf.Bytes())
+		d.buf.Reset()
+	}
+	return len(p), nil
+}
+
+// Flush shows whatever has been held back (used when the command failed).
+func (d *delayedWriter) Flush() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if !d.live {
+		d.live = true
+		_, _ = d.w.Write(d.buf.Bytes())
+		d.buf.Reset()
+	}
 }
 
 // Brief reduces a failed host command to the part a person needs: what the command printed on
@@ -133,15 +176,30 @@ func Up(ctx context.Context, e Env, root string, o UpOptions) (*UpResult, error)
 	if err != nil {
 		return nil, err
 	}
+	// `compose up` builds an image only when none exists, so an agent image built for a different
+	// stack, cache set or UID would be reused silently after `init` regenerated the Dockerfile.
+	// Always run the build: BuildKit's cache makes an unchanged one a no-op, and its output is
+	// shown only if it turns out to do real work.
+	buildArgs := []string{"build"}
+	if o.Rebuild {
+		buildArgs = append(buildArgs, "--no-cache")
+	}
+	dw := newDelayedWriter(e.logw(), 2*time.Second)
+	code, err := p.Run(ctx, compose.Streams{Out: dw, Err: dw}, buildArgs...)
+	if err != nil {
+		return nil, err
+	}
+	if code != 0 {
+		dw.Flush()
+		return nil, fmt.Errorf("building the agent image failed (docker compose exited %d)\n  next: read the build output above; image builds use the host network, so check it can reach the package mirrors, then re-run `cellwall up`", code)
+	}
+
 	timeout := o.Timeout
 	if timeout <= 0 {
 		timeout = 2 * time.Minute
 	}
 	args := []string{"up", "-d", "--wait", "--wait-timeout", strconv.Itoa(int(timeout.Seconds()))}
-	if o.Rebuild {
-		args = append(args, "--build")
-	}
-	code, err := p.Run(ctx, compose.Streams{Out: e.logw(), Err: e.logw()}, args...)
+	code, err = p.Run(ctx, compose.Streams{Out: e.logw(), Err: e.logw()}, args...)
 	if err != nil {
 		return nil, err
 	}

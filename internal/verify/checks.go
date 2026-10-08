@@ -334,7 +334,8 @@ grep -E '^(CapEff|CapBnd|NoNewPrivs|Seccomp):' /proc/self/status
 echo "uid=$(id -u)"
 for s in /var/run/docker.sock /run/docker.sock /docker.sock; do [ -e "$s" ] && echo "SOCKET=$s"; done
 grep -q docker.sock /proc/self/mountinfo && echo "SOCKET-MOUNT"
-for f in /proc/kcore /proc/sysrq-trigger; do [ -r "$f" ] && echo "READABLE=$f"; done
+# Docker masks /proc/kcore with /dev/null, which is "readable" but empty; only data is a leak.
+[ -n "$(head -c 16 /proc/kcore 2>/dev/null | head -c 1)" ] && echo "READABLE=/proc/kcore"
 [ -w /proc/sysrq-trigger ] && echo "WRITABLE=/proc/sysrq-trigger"
 for d in mem kmem port; do [ -e "/dev/$d" ] && echo "DEVICE=/dev/$d"; done
 echo done

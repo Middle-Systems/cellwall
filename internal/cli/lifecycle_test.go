@@ -23,6 +23,7 @@ case "$*" in
   "image inspect"*) echo "<no value>"; exit 0;;
   *" ps --status running -q "*) [ "${FAKE_RUNNING:-1}" = 1 ] && echo cid; exit 0;;
   *" gateway status"*) echo '{"policy":{"policy_hash":"x"}}'; exit 0;;
+  *" build"*) [ -n "$FAKE_BUILD_ERR" ] && { echo "$FAKE_BUILD_ERR" >&2; exit 1; }; exit 0;;
   *" up "*) [ -n "$FAKE_UP_ERR" ] && { echo "$FAKE_UP_ERR" >&2; exit 1; }; exit 0;;
   *" logs "*) echo "gateway-1  | audit: open log: permission denied"; exit 0;;
   *" exec "*) exit ${FAKE_EXIT:-0};;
@@ -40,7 +41,7 @@ func fakeEngine(t *testing.T) string {
 	log := filepath.Join(dir, "calls.log")
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("FAKE_LOG", log)
-	for _, k := range []string{"FAKE_EXIT", "FAKE_RUNNING", "FAKE_UP_ERR", "FAKE_INFO_FAIL"} {
+	for _, k := range []string{"FAKE_EXIT", "FAKE_RUNNING", "FAKE_UP_ERR", "FAKE_INFO_FAIL", "FAKE_BUILD_ERR"} {
 		t.Setenv(k, "")
 	}
 	return log
@@ -378,5 +379,43 @@ func TestPortsLsListsConfiguredPorts(t *testing.T) {
 	var rep struct{ Ports []struct{ Port int } }
 	if err != nil || json.Unmarshal([]byte(out), &rep) != nil || len(rep.Ports) != 1 || rep.Ports[0].Port != 5173 {
 		t.Fatalf("json: %v\n%s", err, out)
+	}
+}
+
+func TestUpAlwaysBuildsTheAgentImageBeforeStarting(t *testing.T) {
+	log := fakeEngine(t)
+	dir := initialisedProject(t, "go-http")
+	if _, _, err := runWith(t, "", "up", "--project-dir", dir); err != nil {
+		t.Fatal(err)
+	}
+	lines := calls(t, log)
+	b, u := firstIndex(lines, " build"), firstIndex(lines, " up -d --wait")
+	if b < 0 || u < 0 || b > u {
+		t.Fatalf("build must run before up so a stale image is never reused:\n%s", strings.Join(lines, "\n"))
+	}
+	if strings.Contains(lines[b], "--no-cache") {
+		t.Error("a normal up must use the build cache")
+	}
+	if _, _, err := runWith(t, "", "up", "--project-dir", dir, "--rebuild"); err != nil {
+		t.Fatal(err)
+	}
+	if firstIndex(calls(t, log), "--no-cache") < 0 {
+		t.Error("--rebuild means a build without the cache")
+	}
+}
+
+func TestAFailedImageBuildShowsItsOutputAndANextStep(t *testing.T) {
+	log := fakeEngine(t)
+	dir := initialisedProject(t, "go-http")
+	t.Setenv("FAKE_BUILD_ERR", "E: Unable to locate package nope")
+	_, errOut, err := runWith(t, "", "up", "--project-dir", dir)
+	if err == nil || !strings.Contains(err.Error(), "building the agent image failed") || !strings.Contains(err.Error(), "next:") {
+		t.Fatalf("got %v", err)
+	}
+	if !strings.Contains(errOut, "Unable to locate package") {
+		t.Errorf("the held-back build output must be shown on failure, stderr=%q", errOut)
+	}
+	if firstIndex(calls(t, log), " up -d") >= 0 {
+		t.Error("nothing should start after a failed build")
 	}
 }
