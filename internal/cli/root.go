@@ -53,7 +53,7 @@ func NewRootCmd(stdout, stderr io.Writer) *cobra.Command {
 	pf.BoolVar(&g.JSON, "json", false, "machine-readable JSON output where supported")
 
 	root.AddCommand(newVersionCmd(&g), newDoctorCmd(&g), newInitCmd(&g), newPrepareCmd(&g), newGatewayCmd(&g),
-		newUpCmd(&g), newRunCmd(&g), newShellCmd(&g), newDownCmd(&g), newStatusCmd(&g), newLogsCmd(&g), newAllowCmd(&g), newDenyCmd(&g), newPortsCmd(&g), newPolicyCmd(&g), newVerifyCmd(&g))
+		newUpCmd(&g), newRunCmd(&g), newShellCmd(&g), newDownCmd(&g), newStatusCmd(&g), newLogsCmd(&g), newAllowCmd(&g), newDenyCmd(&g), newPortsCmd(&g), newPolicyCmd(&g), newVerifyCmd(&g), newFetchCmd(&g))
 	return root
 }
 

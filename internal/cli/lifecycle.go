@@ -95,7 +95,21 @@ func nz(s []string) []string {
 func printUpSummary(w io.Writer, res *sandbox.UpResult) {
 	pol := res.Prepare.Policy
 	writef(w, "cellwall: sandbox %q is up (policy %s, %d rules)\n", res.Project.Cfg.Project, pol.Hash[:12], len(pol.Policy.Rules))
+	printSeeded(w, res)
 	printNotes(w, res.Prepare)
+}
+
+// printSeeded reports what volume mode copied into the workspace volume.
+func printSeeded(w io.Writer, res *sandbox.UpResult) {
+	s := res.Seeded
+	if s == nil || s.Already {
+		return
+	}
+	writef(w, "workspace volume seeded from branch %s @ %s", s.Branch, s.Base[:min(12, len(s.Base))])
+	if s.Overlay+s.Deleted > 0 {
+		writef(w, " plus %d uncommitted file(s) and %d deletion(s)", s.Overlay, s.Deleted)
+	}
+	writef(w, ". Bring the agent's commits back with `cellwall fetch`.\n")
 }
 
 // printNotes shows what must never be silent: active relaxations and warnings.
@@ -133,6 +147,7 @@ func newRunCmd(g *globalFlags) *cobra.Command {
 				return err
 			}
 			writef(cmd.ErrOrStderr(), "cellwall: sandbox %q ready (policy %s, %d rules)\n", res.Project.Cfg.Project, res.Prepare.Policy.Hash[:12], len(res.Prepare.Policy.Policy.Rules))
+			printSeeded(cmd.ErrOrStderr(), res)
 			printNotes(cmd.ErrOrStderr(), res.Prepare)
 
 			argv := append(append([]string{}, res.Project.Cfg.Agent.Command...), args...)
@@ -189,8 +204,13 @@ func newDownCmd(g *globalFlags) *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if volumes && !yes {
-				ok, err := confirm(cmd.InOrStdin(), cmd.ErrOrStderr(),
-					"This deletes the agent's home volume (its login, history and settings) and the dependency caches.\nType 'yes' to continue: ")
+				prompt := "This deletes the agent's home volume (its login, history and settings) and the dependency caches.\n"
+				if commits, dirty, known, _ := sandbox.AtRisk(cmd.Context(), hostEnv(cmd, true), g.ProjectDir); !known {
+					prompt += "In volume mode it also deletes the agent's copy of your repository, and the sandbox is not running so\nunfetched work could not be checked: start it and run `cellwall fetch` first if in doubt.\n"
+				} else if commits > 0 || dirty > 0 {
+					prompt += fmt.Sprintf("It also deletes the agent's copy of your repository, which holds %d commit(s) you have not fetched\nand %d uncommitted file(s). Run `cellwall fetch` first to keep them.\n", commits, dirty)
+				}
+				ok, err := confirm(cmd.InOrStdin(), cmd.ErrOrStderr(), prompt+"Type 'yes' to continue: ")
 				if err != nil {
 					return err
 				}
@@ -268,6 +288,16 @@ func printStatus(w io.Writer, r *sandbox.StatusReport) {
 		writef(w, "network:   %s   internal, host-isolated\n", r.Network.Name)
 	default:
 		writef(w, "network:   %s   NOT fully isolated (internal=%v, host-isolated=%v)\n", r.Network.Name, r.Network.Internal, r.Network.Isolated)
+	}
+	if v := r.Volume; v != nil {
+		switch {
+		case !v.Seeded:
+			writef(w, "workspace: volume, not seeded yet (cellwall up)\n")
+		case v.Known && (v.Unfetched > 0 || v.Dirty > 0):
+			writef(w, "workspace: volume (branch %s): %d unfetched commit(s), %d uncommitted file(s) in the agent's copy -> cellwall fetch\n", v.Branch, v.Unfetched, v.Dirty)
+		default:
+			writef(w, "workspace: volume (branch %s), nothing waiting to be fetched\n", v.Branch)
+		}
 	}
 	p := r.Policy
 	switch {

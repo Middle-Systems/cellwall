@@ -43,8 +43,8 @@ func Default() *Config {
 			Version: pins.ClaudeCodeVersion,
 		},
 		Workspace: Workspace{
-			// bind everywhere until filesystem measurements exist (spike S8): volume mode needs
-			// `cellwall fetch`, which arrives in M5.
+			// bind here; scaffold picks volume on macOS and Windows when the project is a git
+			// repository (spec section 4.5), because bind mounts are slow and awkward there.
 			Mode:         "bind",
 			CacheVolumes: AutoList{Auto: true},
 		},

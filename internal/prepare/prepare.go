@@ -157,7 +157,7 @@ func Run(opts Options) (*Result, error) {
 		made, w := ensureCacheDirs(root, data.Caches, uid, gid)
 		res.CachesMade, res.Warnings = made, append(res.Warnings, w...)
 	} else {
-		res.Warnings = append(res.Warnings, "workspace.mode: volume — protected paths cannot be enforced with bind mounts; `cellwall fetch` will gate them (M5)")
+		res.Warnings = append(res.Warnings, "workspace.mode: volume — the agent works on its own copy, so protected paths cannot be mounted read-only; `cellwall fetch` holds changes to them for your confirmation instead")
 	}
 	secretSources, warns, err := resolveSecrets(cfg)
 	if err != nil {

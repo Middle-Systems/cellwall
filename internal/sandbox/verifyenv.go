@@ -59,6 +59,22 @@ func VerifyEnv(ctx context.Context, e Env, root string, mutate bool) (*verify.En
 			return hex.EncodeToString(b)
 		},
 	}
+	if p.Cfg.Workspace.Mode == "volume" {
+		ve.VolumeMode = true
+		ve.HostMarker = func(name string) (func(), error) {
+			path := filepath.Join(root, name)
+			f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600) //nolint:gosec // a marker in the project root
+			if err != nil {
+				return nil, err
+			}
+			_ = f.Close()
+			return func() { _ = os.Remove(path) }, nil
+		}
+		ve.HostHas = func(name string) bool {
+			_, err := os.Lstat(filepath.Join(root, name))
+			return err == nil
+		}
+	}
 	ve.Exec = func(ctx context.Context, argv ...string) (verify.Out, error) {
 		var o, er bytes.Buffer
 		code, err := p.Exec(ctx, compose.Streams{Out: &o, Err: &er}, compose.AgentService, false, argv...)

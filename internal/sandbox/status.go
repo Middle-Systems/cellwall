@@ -12,6 +12,7 @@ import (
 	"github.com/middle-systems/cellwall/internal/gen"
 	"github.com/middle-systems/cellwall/internal/policy"
 	"github.com/middle-systems/cellwall/internal/prepare"
+	"github.com/middle-systems/cellwall/internal/volume"
 )
 
 // Container is one service's state.
@@ -42,6 +43,16 @@ type PolicyStatus struct {
 	LastError string `json:"last_reload_error,omitempty"`
 }
 
+// VolumeStatus describes the workspace volume in volume mode.
+type VolumeStatus struct {
+	Seeded    bool   `json:"seeded"`
+	Branch    string `json:"branch,omitempty"`
+	Base      string `json:"base,omitempty"`
+	Known     bool   `json:"pending_known"`
+	Unfetched int    `json:"unfetched_commits"`
+	Dirty     int    `json:"uncommitted_files"`
+}
+
 // StatusReport is what `cellwall status` shows.
 type StatusReport struct {
 	Project       string        `json:"project"`
@@ -50,6 +61,7 @@ type StatusReport struct {
 	Policy        PolicyStatus  `json:"policy"`
 	Relaxations   []string      `json:"relaxations"`
 	WorkspaceMode string        `json:"workspace_mode"`
+	Volume        *VolumeStatus `json:"volume,omitempty"`
 	Ports         []int         `json:"ports"`
 	Warnings      []string      `json:"warnings"`
 }
@@ -72,6 +84,15 @@ func Status(ctx context.Context, e Env, root string) (*StatusReport, error) {
 		r.Containers = parsePS(out)
 	} else {
 		r.Warnings = append(r.Warnings, "could not list containers: "+Brief(err))
+	}
+
+	if p.Cfg.Workspace.Mode == "volume" {
+		vs := &VolumeStatus{}
+		if st, err := volume.LoadState(root); err == nil {
+			vs.Seeded, vs.Branch, vs.Base = true, st.Branch, st.Base
+		}
+		vs.Unfetched, vs.Dirty, vs.Known, _ = AtRisk(ctx, e, root)
+		r.Volume = vs
 	}
 
 	r.Network = inspectNetwork(ctx, e, p.Name+"_sandbox")

@@ -292,7 +292,50 @@ done
 exit $rc
 `
 
+const shIsolation = `
+m="$1"
+cd /workspace || exit 3
+rc=0
+[ ! -e "/workspace/$m-host" ] || { echo "HOST-FILE-VISIBLE"; rc=1; }
+: > "/workspace/$m-agent" || { echo "CANNOT-WRITE-WORKSPACE"; exit 1; }
+echo "agent-wrote"
+[ -z "$(ls -A /workspace/.cellwall/state 2>/dev/null)" ] || { echo "STATE-VISIBLE"; rc=1; }
+[ ! -e /etc/cellwall ] || { echo "ETC-CELLWALL"; rc=1; }
+exit $rc
+`
+
+// checkWorkspaceIsolation is check 8 in volume mode. There are no read-only mounts to test: the
+// protection is that the host working tree is not in the container at all, so nothing the agent
+// writes can land in it except through `cellwall fetch`, which gates protected files.
+func checkWorkspaceIsolation(ctx context.Context, e *Env) (Status, string) {
+	if e.HostMarker == nil || e.HostHas == nil {
+		return Fail, "internal error: volume mode needs host-side file access for this check"
+	}
+	tok := "verify-" + e.Token()
+	cleanup, err := e.HostMarker(tok + "-host")
+	if err != nil {
+		return Fail, "could not create a marker in your repository: " + err.Error()
+	}
+	defer cleanup()
+	// The marker the agent creates is left in place while the host looks for it.
+	defer func() { _, _ = e.Exec(ctx, "rm", "-f", "--", "/workspace/"+tok+"-agent") }()
+	o, err := e.Exec(ctx, "sh", "-c", shIsolation, "verify", tok)
+	if err != nil {
+		return Fail, err.Error()
+	}
+	if o.Code != 0 || !strings.Contains(o.Stdout, "agent-wrote") {
+		return Fail, "the agent's workspace is not isolated from the host: " + strings.TrimSpace(strings.ReplaceAll(o.Stdout+" "+o.Stderr, "\n", " "))
+	}
+	if e.HostHas(tok + "-agent") {
+		return Fail, "a file the agent created in /workspace appeared in your repository: the workspace is shared with the host"
+	}
+	return Pass, "the agent's workspace is a separate copy: a file created in your repository does not appear in it, a file the agent creates does not appear on the host, and gateway state is not visible. Changes reach you only through `cellwall fetch`, which holds protected files for confirmation"
+}
+
 func checkProtected(ctx context.Context, e *Env) (Status, string) {
+	if e.VolumeMode {
+		return checkWorkspaceIsolation(ctx, e)
+	}
 	if len(e.Protected) == 0 {
 		return Skip, "no protected path exists in this project to test"
 	}

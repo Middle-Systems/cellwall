@@ -441,3 +441,43 @@ func readFile(t *testing.T, p string) string {
 	}
 	return string(b)
 }
+
+func TestWorkspaceModeDefaultsPerOS(t *testing.T) {
+	yes := func(string) bool { return true }
+	no := func(string) bool { return false }
+	cases := []struct {
+		goos string
+		has  func(string) bool
+		want string
+		note string
+	}{
+		{"linux", yes, "bind", ""},
+		{"darwin", yes, "volume", "default on darwin"},
+		{"windows", yes, "volume", "default on windows"},
+		{"darwin", no, "bind", "needs a git repository with a commit"},
+		{"windows", no, "bind", "needs a git repository with a commit"},
+	}
+	for _, c := range cases {
+		root := t.TempDir()
+		plan, err := Build(Options{Root: root, GlobalConfigDir: t.TempDir(), GOOS: c.goos, HasCommit: c.has})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if plan.Config.Workspace.Mode != c.want {
+			t.Errorf("%s: mode = %s, want %s", c.goos, plan.Config.Workspace.Mode, c.want)
+		}
+		joined := strings.Join(plan.Notes, "\n")
+		if c.note != "" && !strings.Contains(joined, c.note) {
+			t.Errorf("%s: notes lack %q:\n%s", c.goos, c.note, joined)
+		}
+		if c.note == "" && strings.Contains(joined, "workspace.mode") {
+			t.Errorf("%s: unexpected note:\n%s", c.goos, joined)
+		}
+	}
+	// An explicit choice is never overridden, even on macOS.
+	root := t.TempDir()
+	plan, err := Build(Options{Root: root, GlobalConfigDir: t.TempDir(), GOOS: "darwin", HasCommit: yes, WorkspaceMode: "bind"})
+	if err != nil || plan.Config.Workspace.Mode != "bind" {
+		t.Errorf("--workspace bind must win: %v %v", plan.Config.Workspace.Mode, err)
+	}
+}

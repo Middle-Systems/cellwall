@@ -19,6 +19,7 @@ import (
 	"github.com/middle-systems/cellwall/internal/engine"
 	"github.com/middle-systems/cellwall/internal/gatewayimage"
 	"github.com/middle-systems/cellwall/internal/prepare"
+	"github.com/middle-systems/cellwall/internal/volume"
 )
 
 // Env carries the host dependencies, all replaceable in tests.
@@ -53,6 +54,8 @@ type UpResult struct {
 	Prepare      *prepare.Result
 	GatewayImage gatewayimage.Outcome
 	Project      *compose.Project
+	// Seeded is set in volume mode: what was copied into the workspace volume (or Already).
+	Seeded *volume.SeedResult
 }
 
 // delayedWriter swallows output until it has been going for a while, then shows everything and
@@ -206,7 +209,15 @@ func Up(ctx context.Context, e Env, root string, o UpOptions) (*UpResult, error)
 	if code != 0 {
 		return nil, fmt.Errorf("the sandbox did not start (docker compose exited %d)%s\n  next: fix the cause above and re-run `cellwall up`; `cellwall doctor` checks the host", code, e.gatewayLogTail(ctx, p))
 	}
-	return &UpResult{Prepare: res, GatewayImage: outcome, Project: p}, nil
+	out := &UpResult{Prepare: res, GatewayImage: outcome, Project: p}
+	if p.Cfg.Workspace.Mode == "volume" {
+		seeded, err := SeedVolume(ctx, e, root)
+		if err != nil {
+			return nil, fmt.Errorf("the sandbox is up but its workspace could not be seeded: %w", err)
+		}
+		out.Seeded = seeded
+	}
+	return out, nil
 }
 
 // gatewayLogTail returns the end of the gateway's log for an error message ("" if unavailable).

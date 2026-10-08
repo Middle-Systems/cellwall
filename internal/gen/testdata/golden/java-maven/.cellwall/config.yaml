@@ -31,8 +31,9 @@ agent:
   # base_image: "repo:tag@sha256:..."
 
 workspace:
-  # bind: the host directory is mounted. volume: the repo lives in a named volume and changes come
-  # back with `cellwall fetch` (arrives in M5; use "bind" until then).
+  # bind: the host directory is mounted (live, but slow on macOS/Windows file sharing).
+  # volume: the agent gets its own copy in a named volume (fast); `cellwall up` seeds it from your
+  # git repository and `cellwall fetch` brings its commits back, gated on protected files.
   mode: bind
   # Regenerable directories kept on named volumes, off the slow mount: auto | none | [paths].
   cache_volumes: auto

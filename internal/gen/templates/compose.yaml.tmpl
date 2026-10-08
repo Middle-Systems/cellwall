@@ -135,8 +135,9 @@ services:
         bind:
           create_host_path: false
 {{- else}}
-      # workspace.mode=volume: the repository lives in this named volume. Seeding it and bringing
-      # changes back with `cellwall fetch` arrive in M5; until then use mode "bind".
+      # workspace.mode=volume: the agent works on its own copy of the repository in this named
+      # volume. `cellwall up` seeds it from your repository; `cellwall fetch` brings commits back.
+      # Your working tree is not mounted, so it is not exposed to the agent at all.
       - type: volume
         source: workspace
         target: /workspace

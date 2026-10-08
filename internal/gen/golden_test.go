@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/middle-systems/cellwall/internal/config"
 )
 
 var update = flag.Bool("update", false, "rewrite golden files in testdata/golden")
@@ -21,6 +23,61 @@ var goldenFixtures = []string{
 }
 
 func goldenRoot(fixture string) string { return filepath.Join("testdata", "golden", fixture) }
+
+// volumeGoldens are fixtures rendered with workspace.mode=volume, stored under <fixture>-volume.
+var volumeGoldens = []string{"python-flask", "node-vite"}
+
+func TestGoldenVolumeMode(t *testing.T) {
+	for _, fx := range volumeGoldens {
+		t.Run(fx, func(t *testing.T) {
+			in, presets := inputsFor(t, fx, func(c *config.Config) { c.Workspace.Mode = "volume" })
+			files, err := Committed(in, presets)
+			if err != nil {
+				t.Fatal(err)
+			}
+			dir := goldenRoot(fx + "-volume")
+			for _, f := range files {
+				p := filepath.Join(dir, filepath.FromSlash(f.Path))
+				if *update {
+					_ = os.MkdirAll(filepath.Dir(p), 0o755)
+					if err := os.WriteFile(p, f.Content, 0o644); err != nil {
+						t.Fatal(err)
+					}
+					continue
+				}
+				got, err := os.ReadFile(p)
+				if err != nil || !bytes.Equal(got, f.Content) {
+					t.Errorf("%s differs from golden (run: go test ./internal/gen -update, then review the diff): %v", f.Path, err)
+				}
+			}
+			compose := contentOf(t, files, ".devcontainer/compose.yaml")
+			for _, want := range []string{"source: workspace", "workspace: {}"} {
+				if !strings.Contains(compose, want) {
+					t.Errorf("volume-mode compose lacks %q", want)
+				}
+			}
+			if strings.Contains(compose, "create_host_path") && strings.Contains(compose, "target: /workspace\n        bind") {
+				t.Error("volume mode must not bind-mount the host directory")
+			}
+		})
+	}
+}
+
+// Generated files are consumed on every OS; a CR would break the shell script in the container.
+func TestGeneratedFilesHaveNoCarriageReturns(t *testing.T) {
+	for _, fx := range goldenFixtures {
+		in, presets := inputsFor(t, fx, nil)
+		files, err := Committed(in, presets)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, f := range files {
+			if bytes.Contains(f.Content, []byte("\r")) {
+				t.Errorf("%s/%s contains a carriage return", fx, f.Path)
+			}
+		}
+	}
+}
 
 // TestGolden pins the exact bytes generated for each fixture. A diff here is a deliberate review
 // point: generated files are what users run, so every change to them should be seen.

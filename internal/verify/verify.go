@@ -75,6 +75,13 @@ type Env struct {
 	// AllowTemp adds a session allow rule, waits for the running gateway to enforce it, and
 	// returns how long that took plus a function that removes the rule again.
 	AllowTemp func(ctx context.Context, hosts []string) (undo func(), took time.Duration, err error)
+	// VolumeMode is true when the workspace is a named volume rather than a bind mount. The
+	// protected-paths check then proves the isolation volume mode relies on instead.
+	VolumeMode bool
+	// HostMarker creates an empty file with the given name in the host repository's root and
+	// returns a function that removes it; HostHas reports whether such a file exists there.
+	HostMarker func(name string) (cleanup func(), err error)
+	HostHas    func(name string) bool
 	// Mutate permits checks that briefly add (and remove) a session rule.
 	Mutate bool
 	// Token returns a short random token for unique names.

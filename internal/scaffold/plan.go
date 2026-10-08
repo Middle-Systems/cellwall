@@ -6,12 +6,15 @@
 package scaffold
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/middle-systems/cellwall/internal/config"
@@ -39,6 +42,36 @@ type Options struct {
 	Force bool
 	// GlobalConfigDir is the user-global config directory ("" disables it).
 	GlobalConfigDir string
+	// GOOS is the host operating system; empty means runtime.GOOS. It picks the default
+	// workspace mode (tests set it).
+	GOOS string
+	// HasCommit reports whether root is a git repository with at least one commit; nil runs git.
+	HasCommit func(root string) bool
+}
+
+// defaultWorkspaceMode follows the spec (section 4.5): bind on Linux, volume on macOS and Windows
+// where bind mounts are slow or awkward. Volume mode moves the repository through git, so a
+// project that is not a repository with a commit falls back to bind, and says so.
+func defaultWorkspaceMode(opts Options, root string) (mode, note string) {
+	goos := opts.GOOS
+	if goos == "" {
+		goos = runtime.GOOS
+	}
+	if goos != "darwin" && goos != "windows" {
+		return "bind", ""
+	}
+	has := opts.HasCommit
+	if has == nil {
+		has = gitHasCommit
+	}
+	if !has(root) {
+		return "bind", "workspace.mode is bind: volume mode is the default on " + goos + " (bind mounts are slow there) but needs a git repository with a commit. After `git init && git add -A && git commit`, set workspace.mode: volume"
+	}
+	return "volume", "workspace.mode is volume (the default on " + goos + ", where bind mounts are slow): the agent works on its own copy, `cellwall up` seeds it from this repository and `cellwall fetch` brings its commits back. Use `cellwall init --workspace bind` to mount this directory instead"
+}
+
+func gitHasCommit(root string) bool {
+	return exec.CommandContext(context.Background(), "git", "-C", root, "rev-parse", "--verify", "-q", "HEAD").Run() == nil //nolint:gosec // argv only
 }
 
 // ActionKind is what will happen to one file.
@@ -129,10 +162,11 @@ func Build(opts Options) (*Plan, error) {
 	p.Detect = res
 	p.Notes = append(p.Notes, res.Notes...)
 
-	cfg, existed, err := loadOrSeed(root, opts, res)
+	cfg, existed, notes, err := loadOrSeed(root, opts, res)
 	if err != nil {
 		return nil, err
 	}
+	p.Notes = append(p.Notes, notes...)
 	p.Config, p.ConfigExisted = cfg, existed
 	if existed {
 		if len(opts.Stacks) > 0 || opts.WorkspaceMode != "" || opts.Agent != "" || opts.Project != "" || opts.Merge {
@@ -228,13 +262,13 @@ func readText(p string) string {
 
 // loadOrSeed uses the existing config, or builds one from defaults, flags and detection, round-trips
 // it through the real parser so what the user sees is exactly what gets validated and generated.
-func loadOrSeed(root string, opts Options, res *detect.Result) (*config.Config, bool, error) {
+func loadOrSeed(root string, opts Options, res *detect.Result) (*config.Config, bool, []string, error) {
 	if _, err := os.Lstat(filepath.Join(root, filepath.FromSlash(config.ProjectFile))); err == nil {
 		l, err := config.Load(config.LoadOptions{ProjectDir: root, GlobalDir: opts.GlobalConfigDir})
 		if err != nil {
-			return nil, true, err
+			return nil, true, nil, err
 		}
-		return l.Config, true, nil
+		return l.Config, true, nil, nil
 	}
 
 	cfg := config.Default()
@@ -245,8 +279,14 @@ func loadOrSeed(root string, opts Options, res *detect.Result) (*config.Config, 
 	if len(opts.Stacks) > 0 && (len(opts.Stacks) != 1 || opts.Stacks[0] != "auto") {
 		cfg.Stacks = config.AutoList{Items: opts.Stacks}
 	}
+	var notes []string
 	if opts.WorkspaceMode != "" {
 		cfg.Workspace.Mode = opts.WorkspaceMode
+	} else if mode, note := defaultWorkspaceMode(opts, root); mode != cfg.Workspace.Mode || note != "" {
+		cfg.Workspace.Mode = mode
+		if note != "" {
+			notes = append(notes, note)
+		}
 	}
 	if opts.Agent != "" {
 		cfg.Agent.Preset = opts.Agent
@@ -258,7 +298,7 @@ func loadOrSeed(root string, opts Options, res *detect.Result) (*config.Config, 
 		cfg.Devcontainer.Dir = config.DevcontainerMergeDir
 	}
 	if err := cfg.Validate(); err != nil {
-		return nil, false, fmt.Errorf("invalid options: %w", err)
+		return nil, false, nil, fmt.Errorf("invalid options: %w", err)
 	}
 	planRes := effectiveDetect(res, cfg)
 	gi := detect.ParseGitIgnore(readText(filepath.Join(root, ".gitignore")))
@@ -267,7 +307,7 @@ func loadOrSeed(root string, opts Options, res *detect.Result) (*config.Config, 
 
 	seed, err := gen.Committed(gen.Inputs{Config: cfg, Detect: planRes, Plan: pl}, pl.Presets)
 	if err != nil {
-		return nil, false, err
+		return nil, false, nil, err
 	}
 	var text []byte
 	for _, f := range seed {
@@ -277,12 +317,12 @@ func loadOrSeed(root string, opts Options, res *detect.Result) (*config.Config, 
 	}
 	parsed, err := config.Parse(config.ProjectFile, text, config.LayerProject, config.Default())
 	if err != nil {
-		return nil, false, fmt.Errorf("internal error: generated config does not parse: %w", err)
+		return nil, false, nil, fmt.Errorf("internal error: generated config does not parse: %w", err)
 	}
 	if err := parsed.Validate(); err != nil {
-		return nil, false, fmt.Errorf("internal error: generated config is invalid: %w", err)
+		return nil, false, nil, fmt.Errorf("internal error: generated config is invalid: %w", err)
 	}
-	return parsed, false, nil
+	return parsed, false, notes, nil
 }
 
 // classify decides the action for each file, and refuses to touch anything reached via a symlink.

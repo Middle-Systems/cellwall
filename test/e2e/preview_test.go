@@ -72,7 +72,7 @@ func wsConnect(addr, path, subprotocol string) (net.Conn, *bufio.Reader, error) 
 	status, err := br.ReadString('\n')
 	if err != nil || !strings.Contains(status, "101") {
 		_ = c.Close()
-		return nil, nil, fmt.Errorf("websocket upgrade refused: %q %v", status, err)
+		return nil, nil, fmt.Errorf("websocket upgrade refused: %q: %w", status, err)
 	}
 	for {
 		line, err := br.ReadString('\n')

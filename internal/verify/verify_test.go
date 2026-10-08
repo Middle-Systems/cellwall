@@ -462,3 +462,59 @@ func TestAllowedHostSelection(t *testing.T) {
 		t.Error("no policy, no host")
 	}
 }
+
+// ---- volume mode ----
+
+func volumeEnv(t *testing.T, w *world, hostSeesAgentFile, agentSeesHostFile bool) (*Env, *[]string) {
+	t.Helper()
+	e := w.env(t)
+	e.VolumeMode = true
+	var created []string
+	e.HostMarker = func(name string) (func(), error) {
+		created = append(created, name)
+		return func() {}, nil
+	}
+	e.HostHas = func(name string) bool { return hostSeesAgentFile && strings.HasSuffix(name, "-agent") }
+	inner := e.Exec
+	e.Exec = func(ctx context.Context, argv ...string) (Out, error) {
+		if len(argv) >= 3 && argv[0] == "sh" && strings.Contains(argv[2], "agent-wrote") {
+			out := "agent-wrote\n"
+			code := 0
+			if agentSeesHostFile {
+				out, code = "HOST-FILE-VISIBLE\nagent-wrote\n", 1
+			}
+			return Out{Stdout: out, Code: code}, nil
+		}
+		if len(argv) >= 2 && argv[0] == "rm" {
+			return Out{}, nil
+		}
+		return inner(ctx, argv...)
+	}
+	return e, &created
+}
+
+func TestVolumeModeChecksIsolationInsteadOfReadOnlyMounts(t *testing.T) {
+	w := &world{}
+	e, created := volumeEnv(t, w, false, false)
+	rs := Run(context.Background(), e, []string{"protected-paths"})
+	if rs[0].Status != Pass || !strings.Contains(rs[0].Detail, "cellwall fetch") {
+		t.Fatalf("%+v", rs[0])
+	}
+	if len(*created) != 1 || !strings.HasSuffix((*created)[0], "-host") {
+		t.Errorf("the host marker was not created: %v", *created)
+	}
+}
+
+func TestVolumeModeCatchesASharedWorkspace(t *testing.T) {
+	w := &world{}
+	for name, c := range map[string][2]bool{
+		"the agent's file shows up on the host": {true, false},
+		"the host's file shows up in the agent": {false, true},
+	} {
+		e, _ := volumeEnv(t, w, c[0], c[1])
+		rs := Run(context.Background(), e, []string{"protected-paths"})
+		if rs[0].Status != Fail {
+			t.Errorf("%s must FAIL: %+v", name, rs[0])
+		}
+	}
+}
