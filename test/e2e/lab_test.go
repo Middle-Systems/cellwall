@@ -135,7 +135,7 @@ func newLab(t *testing.T) *lab {
 	ctxDir := filepath.Join(l.tmp, "ctx")
 	_ = os.MkdirAll(ctxDir, 0o755)
 	copyFile(t, bin, filepath.Join(ctxDir, "cellwall"), 0o755)
-	copyFile(t, filepath.Join(l.root, "build/gateway/Dockerfile"), filepath.Join(ctxDir, "Dockerfile"), 0o644)
+	copyFile(t, filepath.Join(l.root, "internal/gatewayimage/Dockerfile"), filepath.Join(ctxDir, "Dockerfile"), 0o644)
 	l.docker("build", "-q", "-t", l.image, ctxDir)
 
 	// The sandbox network is exactly the topology from ADR 0001.

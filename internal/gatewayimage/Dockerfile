@@ -3,7 +3,7 @@
 # exploit beyond the binary itself.
 #
 # The CI/release build copies a pre-built, reproducible linux binary for the target architecture:
-#   docker build -f build/gateway/Dockerfile --build-arg BINARY=cellwall-linux-amd64 dist  (BINARY is relative to the context)
+#   docker build -f internal/gatewayimage/Dockerfile --build-arg BINARY=cellwall-linux-amd64 dist  (BINARY is relative to the context)
 FROM scratch
 ARG BINARY=cellwall
 COPY ${BINARY} /cellwall

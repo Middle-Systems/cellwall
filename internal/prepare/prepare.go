@@ -15,11 +15,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/middle-systems/cellwall/internal/config"
 	"github.com/middle-systems/cellwall/internal/gen"
 	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/cellwall/internal/policyedit"
 	"github.com/middle-systems/cellwall/internal/safefs"
 	"github.com/middle-systems/cellwall/internal/scaffold"
 )
@@ -52,6 +54,8 @@ type Result struct {
 	Written    []string
 	Unchanged  []string
 	CachesMade []string
+	// GatewayImage is the image reference written to compose.env.
+	GatewayImage string
 	// Relaxations and Warnings are always shown to the user (ADR 0003).
 	Relaxations []string
 	Warnings    []string
@@ -100,6 +104,9 @@ func Run(opts Options) (*Result, error) {
 	cfg := loaded.Config
 	res := &Result{Config: cfg}
 
+	uid, gid, idWarns := sandboxIDs(opts)
+	res.Warnings = append(res.Warnings, idWarns...)
+
 	// The state directory is reached through the repository; refuse to follow a planted symlink.
 	if why := safefs.SymlinkOnPath(root, gen.StateDirRel); why != "" {
 		return nil, fmt.Errorf("%s", why)
@@ -119,6 +126,7 @@ func Run(opts Options) (*Result, error) {
 	res.Policy, res.Warnings = pol, append(res.Warnings, warns...)
 	res.Presets = presetNames(pol)
 	res.Relaxations = append(cfg.Relaxations(), policy.Relaxations(pol.Findings)...)
+	res.Relaxations = append(res.Relaxations, SessionRules(root)...)
 
 	canon, err := policy.Canonical(pol.Policy)
 	if err != nil {
@@ -130,6 +138,7 @@ func Run(opts Options) (*Result, error) {
 			return nil, err
 		}
 	}
+	chownIfRoot(filepath.Join(stateDir, "audit"), uid, gid)
 	res.record(root, writeIf(filepath.Join(stateDir, "policy", "policy.json"), canon))
 
 	// Protected paths, cache directories, secrets.
@@ -145,7 +154,7 @@ func Run(opts Options) (*Result, error) {
 	if cfg.Workspace.Mode == "bind" {
 		res.Protected = gen.PlanProtected(cfg.ProtectedSet(), gen.WorkspaceExpr(layout), gen.StatFS(root))
 		res.warnProtected()
-		made, w := ensureCacheDirs(root, data.Caches)
+		made, w := ensureCacheDirs(root, data.Caches, uid, gid)
 		res.CachesMade, res.Warnings = made, append(res.Warnings, w...)
 	} else {
 		res.Warnings = append(res.Warnings, "workspace.mode: volume — protected paths cannot be enforced with bind mounts; `cellwall fetch` will gate them (M5)")
@@ -160,9 +169,12 @@ func Run(opts Options) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	uid, gid, w := sandboxIDs(opts)
-	res.Warnings = append(res.Warnings, w...)
 	image := opts.GatewayImage
+	if image == "" {
+		// Keep what an earlier `up --gateway-image` chose, so later runs of prepare (from `allow`,
+		// `deny`, ...) do not silently switch the gateway back to the default tag.
+		image = existingGatewayImage(root)
+	}
 	if image == "" {
 		image = DefaultGatewayImage
 	}
@@ -171,6 +183,7 @@ func Run(opts Options) (*Result, error) {
 		clamp = float64(opts.EngineCPUs)
 		res.Warnings = append(res.Warnings, fmt.Sprintf("hardening.cpus is %g but the container engine has %d CPUs; using %d (raise the engine's CPU allocation, or lower hardening.cpus in .cellwall/config.yaml)", cfg.Hardening.CPUs, opts.EngineCPUs, opts.EngineCPUs))
 	}
+	res.GatewayImage = image
 	env, err := gen.EnvFile(uid, gid, root, stateDir, image, clamp)
 	if err != nil {
 		return nil, err
@@ -325,12 +338,62 @@ func effectivePolicy(root, globalDir string, cfg *config.Config) (*policy.Compil
 	if project == nil {
 		warns = append(warns, ".cellwall/policy.yaml not found: only the agent's own hosts are allowed (run `cellwall init`)")
 	}
-	merged := policy.Merge(agent, global, project)
+	// The session layer (`cellwall allow` / `deny` without --save) has the highest precedence.
+	session, err := policyedit.LoadSession(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	merged := policy.Merge(agent, global, project, session)
 	c, err := policy.Compile(merged, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("policy: %w", err)
 	}
 	return c, warns, nil
+}
+
+// SessionRules describes the rules in the session layer for display next to other relaxations.
+func SessionRules(root string) []string {
+	sess, _ := policyedit.LoadSession(root)
+	if sess == nil {
+		return nil
+	}
+	var out []string
+	for _, r := range sess.Rules {
+		out = append(out, fmt.Sprintf("session rule (not committed): %s %s%s", actionOf(r), r.Host, portsOf(r)))
+	}
+	return out
+}
+
+func actionOf(r policy.Rule) string {
+	if r.IsDeny() {
+		return "deny"
+	}
+	return "allow"
+}
+
+func portsOf(r policy.Rule) string {
+	if len(r.Ports) == 0 {
+		return ""
+	}
+	var parts []string
+	for _, p := range r.Ports {
+		parts = append(parts, strconv.Itoa(p))
+	}
+	return " (ports " + strings.Join(parts, ",") + ")"
+}
+
+// existingGatewayImage reads the image recorded by the previous prepare, or "".
+func existingGatewayImage(root string) string {
+	b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(gen.StateDirRel), "compose.env")) //nolint:gosec // fixed location in the project's state dir
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		if v, ok := strings.CutPrefix(line, "CELLWALL_GATEWAY_IMAGE="); ok {
+			return strings.Trim(strings.TrimSpace(v), "'")
+		}
+	}
+	return ""
 }
 
 // readPolicy returns nil, nil when the file does not exist.
@@ -352,9 +415,21 @@ func readPolicy(path string) (*policy.Policy, error) {
 	return p, nil
 }
 
+// chownIfRoot hands a directory this process just created to the sandbox user. When cellwall runs
+// as root (sudo, a root-only CI runner) the sandbox still runs as an unprivileged uid, and a
+// root-owned audit or cache directory would be unwritable for it: the gateway could not open its
+// audit log and refuses to start (fail closed). A non-root user needs nothing: the sandbox uid is
+// their own.
+func chownIfRoot(path string, uid, gid int) {
+	if runtime.GOOS == "windows" || os.Geteuid() != 0 || uid <= 0 || gid <= 0 {
+		return
+	}
+	_ = os.Chown(path, uid, gid) // best effort: a failure surfaces as the gateway's own clear error
+}
+
 // ensureCacheDirs creates cache directories as the invoking user. Left to Docker, a volume mounted
 // at a path that does not exist makes Docker create it in the repository owned by root (spike S10).
-func ensureCacheDirs(root string, caches []gen.CacheVolume) (made, warns []string) {
+func ensureCacheDirs(root string, caches []gen.CacheVolume, uid, gid int) (made, warns []string) {
 	for _, c := range caches {
 		if why := safefs.SymlinkOnPath(root, c.Path); why != "" {
 			warns = append(warns, "cache volume "+c.Path+": "+why)
@@ -372,6 +447,7 @@ func ensureCacheDirs(root string, caches []gen.CacheVolume) (made, warns []strin
 				warns = append(warns, "cache volume "+c.Path+": "+err.Error())
 				continue
 			}
+			chownIfRoot(abs, uid, gid)
 			made = append(made, c.Path)
 		}
 	}

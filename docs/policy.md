@@ -87,6 +87,21 @@ a relaxation.
 | `max_label_len` / `max_host_len` | 63 / 253 | can only be lowered; DNS-exfil hygiene |
 | `deny_suspicious` | false | refuse hostnames with a high-entropy label (otherwise just logged) |
 
+## Layers and changing policy while the sandbox runs
+
+Rules accumulate from four layers, lowest precedence first: the agent's own hosts (from `agent:`
+in `config.yaml`), your user-global `~/.config/cellwall/policy.yaml`, the committed
+`.cellwall/policy.yaml`, and the **session layer** `.cellwall/state/session-policy.yaml`. Deny
+beats allow whatever the layer, so a higher layer can add rules but never override a deny.
+
+`cellwall allow|deny <host>...` edits the session layer (or the committed file with `--save`),
+re-runs `prepare`, and waits for the running gateway to report the new policy hash, normally
+within a second. The command is refused, and undone, if the host would still be denied, if plain
+HTTP is requested (`unsafe_allow_http` can only be set by hand in the project policy), or if the
+result fails lint. Session rules are shown with the relaxations everywhere, because they are not
+in version control. `cellwall logs --denied` lists what was refused and the command that would
+allow each destination, or why no rule can (IP literals, private addresses, SNI mismatches).
+
 ## Presets
 
 Exact hostnames on port 443 only, no wildcards, no relaxations. The `claude` list comes from the
@@ -102,7 +117,7 @@ multi-tenant storage, so allowing the host would let an agent upload to any atta
 
 ## Lint
 
-`policy lint` (M4) prints these. Errors block loading unless waived on the rule.
+`policy lint` (M4) will print these; `allow` and `deny` already enforce the errors. Errors block loading unless waived on the rule.
 
 | Level | Codes |
 |---|---|

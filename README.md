@@ -1,8 +1,7 @@
 # cellwall
 
-> Working name. Status: **M2 (init and generation)** — `cellwall init` writes a sandbox for your
-> project and `cellwall prepare` readies it; there is no `up`/`run` wrapper yet, so you start it with
-> `docker compose` or the Dev Containers extension (see below).
+> Working name. Status: **M3 (lifecycle)** — `cellwall init && cellwall run` starts the sandbox
+> and drops you into the agent. Preview forwarding, `verify` and `policy lint` come in M4.
 
 cellwall will generate and run a hardened dev container in which a coding agent has no direct
 network path to the internet; all egress goes through a policy-enforcing proxy in a separate
@@ -16,6 +15,9 @@ container the agent cannot modify. See `PROJECT_SPEC.md` for scope and milestone
   `.devcontainer/` (generated, digest-pinned). It never overwrites a file it did not generate or
   that you edited, never writes through a symlink, writes nothing if anything conflicts, and a
   second run changes nothing. `--merge` adds cellwall beside an existing devcontainer setup.
+- `cellwall up | run | shell | down | status | logs | allow | deny`: the lifecycle (ADR 0007).
+  `allow` is confirmed against the running gateway before it says "live", and is refused (and
+  undone) if a deny elsewhere still wins or the host is a dangerous wildcard.
 - `cellwall prepare`: compiles the effective policy, writes the per-session compose override
   (read-only protected-path mounts, secrets, state hidden from the agent) and pre-creates cache
   directories as you. Reports protected paths that do not exist, and drift from the config.
@@ -27,10 +29,20 @@ container the agent cannot modify. See `PROJECT_SPEC.md` for scope and milestone
 
 ## Try it
 
-    cellwall init && cellwall prepare
-    docker compose -f .devcontainer/compose.yaml -f .cellwall/state/compose.override.yaml \
-      --env-file .cellwall/state/compose.env up -d
-    docker compose ... exec agent bash
+    cellwall init                 # detect the stack, write .cellwall/ and .devcontainer/
+    cellwall run                  # start the sandbox if needed, run the agent in it
+    cellwall run -- -p "fix the failing test"
+
+    cellwall logs --denied        # what the policy blocked, grouped, with the command to allow it
+    cellwall allow registry.example.org            # live, this session only
+    cellwall allow registry.example.org --save     # also write it to .cellwall/policy.yaml
+    cellwall deny telemetry.example.org
+    cellwall status               # containers, network isolation, active policy, relaxations
+    cellwall shell                # a shell in the agent container
+    cellwall down [--volumes]
+
+On Linux `up` builds the gateway image from the cellwall binary itself. On macOS and Windows use a
+release image (`--gateway-image`) or build one with `make gateway-image`.
 
 Development:
 

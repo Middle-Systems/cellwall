@@ -354,3 +354,20 @@ func TestRunRefusesNonLoopbackAdminAndBadPolicy(t *testing.T) {
 		t.Error("missing --policy must be an error")
 	}
 }
+
+func TestFetchStatus(t *testing.T) {
+	_, adminAddr, _, _, _ := startGateway(t, "version: 1\nrules:\n  - {host: a.example.com}\n")
+	b, err := FetchStatus(context.Background(), adminAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var st struct {
+		Policy Status `json:"policy"`
+	}
+	if err := json.Unmarshal(b, &st); err != nil || len(st.Policy.PolicyHash) != 64 {
+		t.Fatalf("status = %s (%v)", b, err)
+	}
+	if _, err := FetchStatus(context.Background(), "0.0.0.0:9999"); err == nil {
+		t.Error("a non-loopback admin address must be refused")
+	}
+}

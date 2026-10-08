@@ -56,13 +56,27 @@ func newGatewayCmd(g *globalFlags) *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := gateway.Healthcheck(cmd.Context(), adminHC); err != nil {
-				return &ExitError{Code: 1, Msg: err.Error()}
+				return err
 			}
 			return nil
 		},
 	}
 	hc.Flags().StringVar(&adminHC, "admin", gateway.DefaultAdmin, "admin address of the gateway to check")
-	cmd.AddCommand(hc)
+	st := &cobra.Command{
+		Use:   "status",
+		Short: "Print the local gateway's status as JSON (run by the host CLI via docker exec)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			b, err := gateway.FetchStatus(cmd.Context(), adminHC)
+			if err != nil {
+				return err
+			}
+			_, _ = cmd.OutOrStdout().Write(b)
+			return nil
+		},
+	}
+	st.Flags().StringVar(&adminHC, "admin", gateway.DefaultAdmin, "admin address of the gateway")
+	cmd.AddCommand(hc, st)
 	return cmd
 }
 

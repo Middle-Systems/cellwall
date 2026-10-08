@@ -11,6 +11,7 @@ import (
 
 	"github.com/middle-systems/cellwall/internal/config"
 	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/cellwall/internal/policyedit"
 	"github.com/middle-systems/cellwall/internal/scaffold"
 )
 
@@ -552,5 +553,40 @@ func TestPrepareClampsCPUsToTheEngine(t *testing.T) {
 	}
 	if strings.Contains(read(t, root, ".cellwall/state/compose.env"), "CELLWALL_CPUS") {
 		t.Error("a limit within the engine's CPUs must not be overridden")
+	}
+}
+
+func TestSessionRulesReachTheEffectivePolicyAndAreReported(t *testing.T) {
+	root := initialised(t, "go-http")
+	if _, err := Run(Options{Root: root}); err != nil {
+		t.Fatal(err)
+	}
+	before := read(t, root, ".cellwall/state/policy/policy.json")
+	if _, err := policyedit.ApplySession(root, policyedit.Edit{Action: policy.ActionAllow, Hosts: []string{"registry.example.com"}}); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Run(Options{Root: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := read(t, root, ".cellwall/state/policy/policy.json")
+	if before == after || !strings.Contains(after, "registry.example.com") {
+		t.Error("the session rule did not change the effective policy")
+	}
+	if !strings.Contains(strings.Join(res.Relaxations, "\n"), "session rule (not committed): allow registry.example.com") {
+		t.Errorf("a session rule must be listed with the active relaxations: %v", res.Relaxations)
+	}
+}
+
+func TestPrepareKeepsTheGatewayImageItWasGiven(t *testing.T) {
+	root := initialised(t, "go-http")
+	if _, err := Run(Options{Root: root, GatewayImage: "registry.example.com/gw@sha256:abc"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Run(Options{Root: root}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(read(t, root, ".cellwall/state/compose.env"), "registry.example.com/gw@sha256:abc") {
+		t.Error("a later prepare reset the gateway image to the default")
 	}
 }

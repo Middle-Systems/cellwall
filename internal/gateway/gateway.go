@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -240,4 +241,28 @@ func Healthcheck(ctx context.Context, admin string) error {
 		return fmt.Errorf("gateway unhealthy: %s", resp.Status)
 	}
 	return nil
+}
+
+// FetchStatus returns the admin endpoint's /status document (the active policy hash and reload
+// history). The host CLI runs `cellwall gateway status` inside the gateway container to read it,
+// so nothing is published on a host port and the agent has no path to it.
+func FetchStatus(ctx context.Context, admin string) ([]byte, error) {
+	if err := ValidateAdminAddr(admin); err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+admin+"/status", nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("gateway status: %s", resp.Status)
+	}
+	return io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 }

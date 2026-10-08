@@ -54,7 +54,9 @@ func TestGeneratedTopology(t *testing.T) {
 	compose := []string{"compose",
 		"-f", ".devcontainer/compose.yaml", "-f", ".cellwall/state/compose.override.yaml",
 		"--env-file", ".cellwall/state/compose.env", "--project-directory", ".devcontainer"}
-	dc := func(args ...string) string { return runIn("docker", append(append([]string{}, compose...), args...)...) }
+	dc := func(args ...string) string {
+		return runIn("docker", append(append([]string{}, compose...), args...)...)
+	}
 	t.Cleanup(func() {
 		cmd := exec.Command("docker", append(append([]string{}, compose...), "down", "-v", "--remove-orphans", "-t", "1")...)
 		cmd.Dir, cmd.Env = ws, env

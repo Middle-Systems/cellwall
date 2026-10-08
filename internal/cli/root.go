@@ -52,7 +52,8 @@ func NewRootCmd(stdout, stderr io.Writer) *cobra.Command {
 	pf.BoolVarP(&g.Verbose, "verbose", "v", false, "enable debug logging on stderr")
 	pf.BoolVar(&g.JSON, "json", false, "machine-readable JSON output where supported")
 
-	root.AddCommand(newVersionCmd(&g), newDoctorCmd(&g), newInitCmd(&g), newPrepareCmd(&g), newGatewayCmd(&g))
+	root.AddCommand(newVersionCmd(&g), newDoctorCmd(&g), newInitCmd(&g), newPrepareCmd(&g), newGatewayCmd(&g),
+		newUpCmd(&g), newRunCmd(&g), newShellCmd(&g), newDownCmd(&g), newStatusCmd(&g), newLogsCmd(&g), newAllowCmd(&g), newDenyCmd(&g))
 	return root
 }
 
