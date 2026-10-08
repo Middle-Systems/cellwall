@@ -13,10 +13,10 @@ Rancher Desktop** — those columns are explicitly *pending*.
 | S2 | done (Linux/Docker) | **GO** | No external DNS resolution and no port-53 packets leave the host from the sandbox network. |
 | S3 | done (Linux/Docker) | **GO** | Publishing from an internal-only container is silently dead; gateway on both networks forwards fine. |
 | S4 | Linux done; macOS/Windows **pending** | **GO, with required changes** | Nested ro mounts work, but protected paths can be evaded by renaming a parent directory. See ADR 0002. |
-| S5 | **pending** | n/a | Engine matrix needs other engines. Template at the bottom. |
-| S6 | **pending** | n/a | Needs an authenticated agent session with a permissive policy. |
+| S5 | **partial** | Linux | Docker Engine on Linux passes every row (below). Other engines need their hosts: run `spikes/s5_engine_matrix.sh`, which prints a table row. |
+| S6 | **pending** | n/a | Needs an authenticated agent session; procedure in `spikes/s6_agent_endpoints.md`. |
 | S7 | done (Linux/Docker) | **GO** | Warm rebuild 0.7 s vs 7 s cold; layer order matters. |
-| S8 | **pending** | n/a | Needs macOS and Windows hosts. |
+| S8 | **partial** | Linux | Script ready (`spikes/s8_fs_timing.sh`); Linux baseline below shows no bind/volume difference. macOS and Windows numbers pending. |
 | S9 | done (Linux/Docker) | **GO, design change** | Single-file bind mounts go stale on atomic replace; mount the policy *directory*. |
 | S10 | done (Linux/Docker) | **GO, with requirements** | Cache volumes need the image to pre-create+chown the dir; Docker leaves root-owned placeholders in the repo unless `prepare` pre-creates them; a tmpfs cleanly hides the gateway state. |
 
@@ -122,8 +122,9 @@ Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5
 
 ## Pending spikes
 
-- **S5 engine matrix:** run `s1b_host_reachability.sh`, `s2_dns.sh`, `s3_ports.sh`,
-  `s4_protected_paths.sh` on each engine and fill in:
+- **S5 engine matrix:** run `spikes/s5_engine_matrix.sh` on each engine (it runs
+  `s1b_host_reachability.sh`, `s2_dns.sh`, `s3_ports.sh`, `s4_protected_paths.sh` and
+  `s10_nested_mounts.sh` and prints the row) and fill in:
 
   | Engine | OS | internal+isolated host-blocked | DNS no-leak | publish via gateway | ro nested mounts | Notes |
   |---|---|---|---|---|---|---|
@@ -132,9 +133,22 @@ Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5
   | Colima / OrbStack / Rancher Desktop | macOS | pending | pending | pending | pending | |
   | Podman (rootless) | Linux | pending | pending | pending | pending | `gateway_mode_ipv4` likely unsupported |
 
-- **S6 endpoints:** run the agent with a permissive policy and read the audit log (needs M1 gateway
-  and valid agent credentials).
-- **S8 filesystem timing:** `npm install` + test run, `bind` vs `volume`, on macOS and Windows.
+- **S6 endpoints:** follow `spikes/s6_agent_endpoints.md` (needs valid agent credentials).
+- **S8 filesystem timing:** `spikes/s8_fs_timing.sh [--npm] [--dir <host path>]` on macOS and
+  Windows (run it once with `--dir` on the Windows/macOS filesystem and, on Windows, once inside
+  WSL for comparison).
+
+  Linux baseline (Docker Engine 29.6, 5000 small files, ext4/overlay; one run, 10 ms resolution):
+
+  | phase | bind (ms) | volume (ms) |
+  |---|---|---|
+  | write small files | 3120 | 3250 |
+  | walk and stat | 70 | 70 |
+  | read all | 80 | 100 |
+  | delete tree | 150 | 130 |
+
+  On Linux the two modes cost the same, as expected; the default stays `bind` there. The question
+  for macOS and Windows is how large the gap is across the VM boundary.
 
 ## CI notes (GitHub-hosted ubuntu runner, run 3 onward)
 
