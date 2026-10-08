@@ -1,7 +1,8 @@
 # cellwall
 
-> Working name. Status: **M3 (lifecycle)** — `cellwall init && cellwall run` starts the sandbox
-> and drops you into the agent. Preview forwarding, `verify` and `policy lint` come in M4.
+> Working name. Status: **M4 (hardening, previews, verify)** — `cellwall init && cellwall run`
+> starts the sandbox and drops you into the agent; dev servers preview on `localhost`; and
+> `cellwall verify` attacks the running sandbox so the claims below are checkable.
 
 cellwall will generate and run a hardened dev container in which a coding agent has no direct
 network path to the internet; all egress goes through a policy-enforcing proxy in a separate
@@ -18,6 +19,10 @@ container the agent cannot modify. See `PROJECT_SPEC.md` for scope and milestone
 - `cellwall up | run | shell | down | status | logs | allow | deny`: the lifecycle (ADR 0007).
   `allow` is confirmed against the running gateway before it says "live", and is refused (and
   undone) if a deny elsewhere still wins or the host is a dangerous wildcard.
+- `cellwall ports ls|add|rm`: previews are published by the gateway on `127.0.0.1` and relayed to
+  the agent by a forwarder whose upstream is fixed (ADR 0008). The agent never publishes ports.
+- `cellwall verify`: twelve escape attempts against the live sandbox, each reported PASS, FAIL or
+  SKIP (never a silent pass); `--strict` for CI. Also `cellwall policy lint`.
 - `cellwall prepare`: compiles the effective policy, writes the per-session compose override
   (read-only protected-path mounts, secrets, state hidden from the agent) and pre-creates cache
   directories as you. Reports protected paths that do not exist, and drift from the config.
@@ -40,6 +45,11 @@ container the agent cannot modify. See `PROJECT_SPEC.md` for scope and milestone
     cellwall status               # containers, network isolation, active policy, relaxations
     cellwall shell                # a shell in the agent container
     cellwall down [--volumes]
+
+    cellwall ports add 5173       # preview a dev server at http://localhost:5173 (hot reload works)
+    cellwall ports ls             # what is listening, and the fix if it listens on localhost only
+    cellwall verify               # run the escape suite against the live sandbox
+    cellwall policy lint          # dangerous wildcards, private-range allows, weakened controls
 
 On Linux `up` builds the gateway image from the cellwall binary itself. On macOS and Windows use a
 release image (`--gateway-image`) or build one with `make gateway-image`.
