@@ -45,7 +45,7 @@ var ErrNotFound = errors.New("executable not found")
 
 // Run implements Runner.
 func (ExecRunner) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := exec.CommandContext(ctx, name, args...) //nolint:gosec // argv-only: no shell, and callers pass fixed program names
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

@@ -39,7 +39,7 @@ func serverNameExt(names []string) []byte {
 func Handshake(o HelloOpts) []byte {
 	body := []byte{0x03, 0x03}
 	body = append(body, make([]byte, 32)...) // random
-	body = append(body, byte(o.SessionID))
+	body = append(body, byte(o.SessionID))   //nolint:gosec // test fixture: session ids are small
 	body = append(body, make([]byte, o.SessionID)...)
 	body = append(body, u16(4)...)              // cipher suites: two suites
 	body = append(body, 0x13, 0x01, 0xc0, 0x2f) //
@@ -64,7 +64,7 @@ func Handshake(o HelloOpts) []byte {
 		body = append(body, u16(len(exts))...)
 		body = append(body, exts...)
 	}
-	msg := []byte{0x01, byte(len(body) >> 16), byte(len(body) >> 8), byte(len(body))}
+	msg := []byte{0x01, byte(len(body) >> 16), byte(len(body) >> 8), byte(len(body))} //nolint:gosec // 3-byte length field: truncation is the encoding
 	return append(msg, body...)
 }
 
