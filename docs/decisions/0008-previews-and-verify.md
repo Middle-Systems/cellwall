@@ -36,7 +36,7 @@ Status: accepted.
 - **Positive controls.** "Blocked" is only meaningful if the same path works when it should: the
   gateway must resolve, the proxy port must connect, a correct TLS handshake must complete. A
   failed control yields SKIP/FAIL, never PASS.
-- **The suite is tested against broken sandboxes.** 31 scripted weaknesses each have to be caught by
+- **The suite is tested against broken sandboxes.** 32 scripted weaknesses each have to be caught by
   the check they belong to and by no other, and `TestVerifyCommand` attaches the agent to the egress
   network of a real sandbox and requires `verify` to fail.
 - **Two checks write.** Proving the address guard needs a policy that *allows* a name resolving to
