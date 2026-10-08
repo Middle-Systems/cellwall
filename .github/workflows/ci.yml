@@ -35,6 +35,9 @@ jobs:
         if: runner.os != 'Windows'
       - run: go test -count=1 ./...
         if: runner.os == 'Windows'
+      - name: Proxy overhead budget
+        if: matrix.os == 'ubuntu-latest'
+        run: make bench-check
       - name: Build static binary and smoke-test
         shell: bash
         run: |

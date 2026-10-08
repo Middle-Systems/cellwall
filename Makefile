@@ -7,7 +7,7 @@ LDFLAGS := -s -w -X $(MODULE)/internal/version.Version=$(VERSION) \
            -X $(MODULE)/internal/version.Commit=$(COMMIT) \
            -X $(MODULE)/internal/version.Date=$(DATE)
 
-.PHONY: build test lint vuln verify-mod spikes cross all e2e fuzz gateway-image
+.PHONY: bench bench-check build test lint vuln verify-mod spikes cross all e2e fuzz gateway-image
 all: lint test build
 
 build:
@@ -15,6 +15,15 @@ build:
 
 test:
 	go test -race ./...
+
+# Proxy overhead: CONNECT setup and first-byte latency (p50/p99) and throughput. See docs/performance.md.
+bench:
+	go test -run '^$$' -bench 'ConnectSetup|FirstByte' -benchtime 2000x ./internal/proxy
+	go test -run '^$$' -bench Throughput -benchtime 3x ./internal/proxy
+
+# Fails on large regressions against generous fixed budgets (not run under -race).
+bench-check:
+	go test -run TestProxyOverheadBudget -count=1 -v ./internal/proxy
 
 lint:
 	go vet ./...

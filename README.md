@@ -71,7 +71,7 @@ Development:
     make fuzz             # short fuzzing pass over the parsers and matcher
     make spikes           # the Docker-behaviour spikes behind the design
 
-See `docs/policy.md` for the policy format, `docs/threat-model.md` for what is and is not
+See `docs/performance.md` for proxy overhead numbers and the regression gate, `docs/policy.md` for the policy format, `docs/threat-model.md` for what is and is not
 protected, `docs/spikes.md` for the evidence the design rests on, and `docs/decisions/` for the
 reasoning behind it.
 
