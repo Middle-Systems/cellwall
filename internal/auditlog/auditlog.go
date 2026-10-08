@@ -122,67 +122,44 @@ func scan(r io.Reader, fn func(audit.Record)) (skipped int) {
 }
 
 // Follow prints new matching records as they are appended until ctx is done. It starts at the end
-// of the active file and survives rotation (the file is reopened when it is replaced or shrinks).
+// of the active file and survives rotation.
+//
+// The file is opened only for the instant of each read and never held between polls. On Windows an
+// open file cannot be renamed, and the gateway rotates the log by renaming it (through the bind
+// mount), so a reader that kept the handle would make rotation fail.
 func Follow(ctx context.Context, dir string, f Filter, emit func(audit.Record), poll time.Duration) error {
 	if poll <= 0 {
 		poll = 300 * time.Millisecond
 	}
 	path := filepath.Join(dir, audit.FileName)
 	var (
-		fh     *os.File
-		offset int64
 		info   os.FileInfo
+		offset int64
 		carry  []byte
 	)
-	defer func() {
-		if fh != nil {
-			_ = fh.Close()
-		}
-	}()
-	open := func(fromStart bool) {
-		if fh != nil {
-			_ = fh.Close()
-			fh = nil
-		}
-		h, err := os.Open(path) //nolint:gosec // the audit directory under the project's state dir
-		if err != nil {
-			return
-		}
-		st, err := h.Stat()
-		if err != nil {
-			_ = h.Close()
-			return
-		}
-		fh, info = h, st
-		offset, carry = 0, nil
-		if !fromStart {
-			offset = st.Size()
-		}
+	if st, err := os.Stat(path); err == nil {
+		info, offset = st, st.Size()
 	}
-	open(false)
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(poll):
 		}
-		if fh == nil {
-			open(true)
-			if fh == nil {
-				continue
-			}
-		}
-		// A different file at the path (rotation) or a shorter one means start again from the top.
-		if cur, err := os.Stat(path); err == nil && (!os.SameFile(cur, info) || cur.Size() < offset) {
-			open(true)
-			if fh == nil {
-				continue
-			}
-		}
-		if _, err := fh.Seek(offset, io.SeekStart); err != nil {
+		cur, err := os.Stat(path)
+		if err != nil {
+			info = nil // not there (mid-rotation); start from the top when it reappears
 			continue
 		}
-		data, err := io.ReadAll(fh)
+		// A different file at the path (rotation) or a shorter one: start again from the top.
+		if info == nil || !os.SameFile(cur, info) || cur.Size() < offset {
+			offset, carry = 0, nil
+		}
+		info = cur
+		if cur.Size() == offset {
+			continue
+		}
+		data, err := readFrom(path, offset)
 		if err != nil {
 			continue
 		}
@@ -202,6 +179,19 @@ func Follow(ctx context.Context, dir string, f Filter, emit func(audit.Record), 
 			data = data[i+1:]
 		}
 	}
+}
+
+// readFrom returns the bytes of path from offset to the end, holding the file open only briefly.
+func readFrom(path string, offset int64) ([]byte, error) {
+	fh, err := os.Open(path) //nolint:gosec // the audit directory under the project's state dir
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = fh.Close() }()
+	if _, err := fh.Seek(offset, io.SeekStart); err != nil {
+		return nil, err
+	}
+	return io.ReadAll(fh)
 }
 
 // ParseSince accepts a Go duration ("90m", "1h30m") or a day count ("2d") and returns the time

@@ -21,7 +21,7 @@ lint:
 	golangci-lint run
 
 vuln:
-	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+	go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
 
 verify-mod:
 	go mod verify
