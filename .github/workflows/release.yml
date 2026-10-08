@@ -1,0 +1,43 @@
+# Builds, checksums, SBOMs and signs a release when a version tag is pushed. It creates a DRAFT
+# GitHub release; a person publishes it after checking the artifacts (docs/releasing.md).
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the draft release
+      id-token: write # keyless signing and provenance
+      attestations: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      # Release tooling is built from source at pinned versions (verified through the Go module
+      # checksum database) rather than downloaded as binaries.
+      - name: Install release tools
+        run: |
+          set -euo pipefail
+          export GOBIN="$RUNNER_TEMP/bin"
+          go install github.com/goreleaser/goreleaser/v2@v2.18.2
+          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.6.5
+          go install github.com/anchore/syft/cmd/syft@v1.54.1
+          echo "$GOBIN" >> "$GITHUB_PATH"
+      - name: Release
+        run: goreleaser release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Attest build provenance (SLSA)
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/checksums.txt

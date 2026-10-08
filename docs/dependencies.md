@@ -23,3 +23,9 @@ object, not a commit, and pinning it fails (golangci-lint-action v8.0.0 is annot
 | `actions/checkout` | v4.4.0 | Fetch the repo; `persist-credentials: false` so later steps cannot reuse the token. |
 | `actions/setup-go` | v5.6.0 | Install the Go version from `go.mod`. |
 | `golangci/golangci-lint-action` | v8.0.0 | Run golangci-lint v2 with caching. |
+
+## Release tooling (not linked into the binary)
+
+Built from source at pinned versions by `.github/workflows/release.yml`: GoReleaser v2.18.2
+(archives, checksums), cosign v2.6.5 (keyless signing), syft v1.54.1 (SBOM). The only third-party
+action in the release path is `actions/attest-build-provenance`, pinned by commit SHA.

@@ -11,7 +11,12 @@ version`, and the smallest reproduction you can, ideally a failing `cellwall ver
 We aim to acknowledge reports within 3 working days. Coordinated disclosure: we will agree a
 timeline with you and credit you unless you prefer otherwise.
 
-> The disclosure contact must be confirmed by the maintainers before the first release (spec M5).
+> The disclosure contact must be confirmed by the maintainers before the first public release.
+
+## Verifying releases
+
+Release archives are checksummed, signed with Sigstore (keyless) and carry build-provenance
+attestations and SBOMs. See `docs/releasing.md` for the exact verification commands.
 
 ## Scope
 
@@ -25,4 +30,4 @@ compromised host.
 
 ## Supported versions
 
-Pre-release: only the latest commit on `main`.
+Pre-release: only the latest commit on `master`.

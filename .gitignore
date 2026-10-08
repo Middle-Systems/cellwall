@@ -5,3 +5,4 @@
 coverage.*
 .cellwall/state/
 .DS_Store
+internal/gatewayimage/embedded/cellwall-*

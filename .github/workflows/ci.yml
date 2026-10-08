@@ -138,3 +138,25 @@ jobs:
           test "$(docker image inspect cellwall-gateway:dev --format '{{.Config.User}}')" = "65532:65532"
           # A scratch image has no shell to exec into.
           ! docker run --rm --entrypoint /bin/sh cellwall-gateway:dev -c true 2>/dev/null
+
+  # The release pipeline on every change, minus signing and publishing: catches a broken
+  # .goreleaser.yaml or a failing cross-build before a tag does.
+  release-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      - run: go install github.com/goreleaser/goreleaser/v2@v2.18.2
+      - run: goreleaser check
+      - run: goreleaser release --snapshot --clean --skip=sbom,sign,homebrew,scoop
+      - name: Release binaries report their version and carry the Linux gateway
+        run: |
+          set -eu
+          dist/linux_linux_amd64_v1/cellwall version
+          test "$(stat -c %s dist/hosted_darwin_arm64_v8.0/cellwall)" -gt "$(stat -c %s dist/linux_linux_amd64_v1/cellwall)"
+      - run: sh scripts/install_test.sh

@@ -1,8 +1,10 @@
 # cellwall
 
-> Working name. Status: **M4 (hardening, previews, verify)** — `cellwall init && cellwall run`
-> starts the sandbox and drops you into the agent; dev servers preview on `localhost`; and
-> `cellwall verify` attacks the running sandbox so the claims below are checkable.
+> Working name. Status: **M5 (cross-platform and releases)** — `cellwall init && cellwall run`
+> starts the sandbox and drops you into the agent; dev servers preview on `localhost`;
+> `cellwall verify` attacks the running sandbox so the claims below are checkable; on macOS and
+> Windows the agent works on its own copy (volume mode) and `cellwall fetch` brings work back.
+> Verified in CI on Linux; macOS and Windows results are tracked in `docs/platforms.md`.
 
 cellwall will generate and run a hardened dev container in which a coding agent has no direct
 network path to the internet; all egress goes through a policy-enforcing proxy in a separate
@@ -21,6 +23,9 @@ container the agent cannot modify. See `PROJECT_SPEC.md` for scope and milestone
   undone) if a deny elsewhere still wins or the host is a dangerous wildcard.
 - `cellwall ports ls|add|rm`: previews are published by the gateway on `127.0.0.1` and relayed to
   the agent by a forwarder whose upstream is fixed (ADR 0008). The agent never publishes ports.
+- `cellwall fetch [--apply]`: in volume mode, imports the agent's commits (strictly verified) as
+  `refs/cellwall/*` and shows what changed; `--apply` fast-forwards and stops at protected files
+  (ADR 0009).
 - `cellwall verify`: twelve escape attempts against the live sandbox, each reported PASS, FAIL or
   SKIP (never a silent pass); `--strict` for CI. Also `cellwall policy lint`.
 - `cellwall prepare`: compiles the effective policy, writes the per-session compose override
@@ -51,8 +56,12 @@ container the agent cannot modify. See `PROJECT_SPEC.md` for scope and milestone
     cellwall verify               # run the escape suite against the live sandbox
     cellwall policy lint          # dangerous wildcards, private-range allows, weakened controls
 
-On Linux `up` builds the gateway image from the cellwall binary itself. On macOS and Windows use a
-release image (`--gateway-image`) or build one with `make gateway-image`.
+`up` builds the gateway image from the cellwall binary itself (Linux) or from the Linux gateway
+carried inside the release binary (macOS, Windows). A development build on macOS/Windows needs
+`--gateway-image` or `make gateway-image` on Linux.
+
+Install a release with `scripts/install.sh`; it verifies the checksum and Sigstore signature
+(`docs/releasing.md`).
 
 Development:
 

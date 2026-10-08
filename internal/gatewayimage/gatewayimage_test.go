@@ -2,6 +2,8 @@ package gatewayimage
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"os"
 	"path/filepath"
@@ -13,6 +15,7 @@ import (
 
 // fakeDocker answers `image inspect` from a table and records builds.
 type fakeDocker struct {
+	arch   string
 	label  string
 	exists bool
 	calls  [][]string
@@ -22,6 +25,11 @@ type fakeDocker struct {
 func (f *fakeDocker) Run(_ context.Context, name string, args ...string) ([]byte, error) {
 	f.calls = append(f.calls, append([]string{name}, args...))
 	switch {
+	case len(args) >= 1 && args[0] == "info":
+		if f.arch == "" {
+			return []byte("x86_64\n"), nil
+		}
+		return []byte(f.arch + "\n"), nil
 	case len(args) >= 2 && args[0] == "image" && args[1] == "inspect":
 		if !f.exists {
 			return nil, &engine.CommandError{Cmd: "docker image inspect", Stderr: "Error: No such image: x", Err: errors.New("exit status 1")}
@@ -138,5 +146,36 @@ func TestDynamicallyLinkedBinariesAreRefused(t *testing.T) {
 		if err := requireStatic(cand); err != nil && !strings.Contains(err.Error(), "dynamically linked") {
 			t.Errorf("unexpected error: %v", err)
 		}
+	}
+}
+
+func TestEmbeddedGatewayIsUsedOnOtherHosts(t *testing.T) {
+	emb := func(arch string) ([]byte, bool) {
+		if arch == "arm64" {
+			return []byte("linux-arm64-gateway"), true
+		}
+		return nil, false
+	}
+	f := &fakeDocker{arch: "aarch64"}
+	out, err := Ensure(context.Background(), Options{Runner: f, Image: Tag, GOOS: "windows", Embedded: emb})
+	if err != nil || out != Built {
+		t.Fatalf("outcome=%v err=%v", out, err)
+	}
+	if f.built == nil || f.built.binary != "linux-arm64-gateway" {
+		t.Fatalf("build = %+v", f.built)
+	}
+
+	// An image already built from the same embedded binary is left alone.
+	h := sha256.Sum256([]byte("linux-arm64-gateway"))
+	f = &fakeDocker{arch: "arm64", exists: true, label: hex.EncodeToString(h[:])}
+	if out, err := Ensure(context.Background(), Options{Runner: f, Image: Tag, GOOS: "darwin", Embedded: emb}); err != nil || out != Present {
+		t.Fatalf("outcome=%v err=%v", out, err)
+	}
+
+	// An architecture the build does not carry is an actionable error.
+	f = &fakeDocker{arch: "x86_64"}
+	_, err = Ensure(context.Background(), Options{Runner: f, Image: Tag, GOOS: "darwin", Embedded: emb})
+	if err == nil || !strings.Contains(err.Error(), "amd64") || !strings.Contains(err.Error(), "next:") {
+		t.Fatalf("want an error naming the architecture and the next step, got %v", err)
 	}
 }

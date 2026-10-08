@@ -142,6 +142,17 @@ func Override(in OverrideInputs) (File, error) {
 	return File{Path: StateDirRel + "/compose.override.yaml", Content: []byte(Stamp("#", body)), Mode: 0o644, Kind: Generated}, nil
 }
 
+// ComposePath renders a host path the way `docker compose` wants it in an env file. Docker Desktop
+// accepts `C:/Users/me/proj` on Windows but not backslashes (they are escapes in the env-file
+// syntax), so drive-letter and UNC paths get forward slashes whichever OS is generating them; a
+// POSIX path is returned as it is (a backslash there is a legal filename character).
+func ComposePath(p string) string {
+	if len(p) >= 3 && p[1] == ':' && (p[2] == '\\' || p[2] == '/') || strings.HasPrefix(p, `\\`) {
+		return strings.ReplaceAll(p, `\`, "/")
+	}
+	return filepath.ToSlash(p)
+}
+
 // EnvFile renders compose.env, the variables `docker compose --env-file` needs. Values are
 // single-quoted so compose does not interpolate `$` or split on spaces. gatewayImage should be a
 // digest reference in a release build.
@@ -154,9 +165,9 @@ func EnvFile(uid, gid int, workspaceAbs, stateAbs, gatewayImage string, cpus flo
 	lines := []string{
 		"CELLWALL_GATEWAY_IMAGE='" + gatewayImage + "'",
 		fmt.Sprintf("CELLWALL_GID=%d", gid),
-		"CELLWALL_STATE='" + filepath.ToSlash(stateAbs) + "'",
+		"CELLWALL_STATE='" + ComposePath(stateAbs) + "'",
 		fmt.Sprintf("CELLWALL_UID=%d", uid),
-		"CELLWALL_WORKSPACE='" + filepath.ToSlash(workspaceAbs) + "'",
+		"CELLWALL_WORKSPACE='" + ComposePath(workspaceAbs) + "'",
 	}
 	if cpus > 0 {
 		// Docker refuses to create a container whose CPU limit exceeds the engine's CPUs, so a

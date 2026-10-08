@@ -57,7 +57,10 @@ type Options struct {
 	Image  string // image reference compose will use
 	Exe    string // path of the running binary; defaults to os.Executable()
 	GOOS   string // defaults to runtime.GOOS
-	Log    io.Writer
+	// Embedded returns the Linux gateway binary carried by a release build, by GOARCH. Defaults to
+	// the binary compiled in with -tags embedgw (none in a plain build).
+	Embedded func(arch string) ([]byte, bool)
+	Log      io.Writer
 }
 
 // Ensure makes sure the gateway image exists and matches this binary. Only the default Tag is
@@ -86,11 +89,7 @@ func Ensure(ctx context.Context, o Options) (Outcome, error) {
 		return Present, nil
 	}
 	if o.GOOS != "linux" {
-		if exists {
-			return Present, nil
-		}
-		return 0, fmt.Errorf("the gateway image %s does not exist, and this %s build of cellwall cannot make one (the gateway is a Linux binary)\n"+
-			"  next: build it from a Linux binary with `make gateway-image`, or pass a published image with `cellwall up --gateway-image <ref>`", o.Image, o.GOOS)
+		return ensureEmbedded(ctx, o, exists, label)
 	}
 	sum, err := fileSHA256(exe)
 	if err != nil {
@@ -188,4 +187,66 @@ func requireStatic(path string) error {
 			"  next: install a release build of cellwall, or build with `CGO_ENABLED=0 go build ./cmd/cellwall`", path)
 	}
 	return nil
+}
+
+// ensureEmbedded builds the image from the Linux binary carried inside a release build of cellwall,
+// choosing the architecture of the container engine (Docker Desktop on Apple silicon runs arm64
+// Linux; most Windows machines run amd64).
+func ensureEmbedded(ctx context.Context, o Options, exists bool, label string) (Outcome, error) {
+	arch, err := engineArch(ctx, o.Runner)
+	if err != nil {
+		return 0, err
+	}
+	embedded := o.Embedded
+	if embedded == nil {
+		embedded = embeddedBinary
+	}
+	bin, ok := embedded(arch)
+	if !ok {
+		if exists {
+			return Present, nil
+		}
+		return 0, fmt.Errorf("the gateway image %s does not exist, and this %s build of cellwall does not carry a gateway for %s\n"+
+			"  next: install the official release (it includes the gateway), build the image on Linux with `make gateway-image`, or pass a published image with `cellwall up --gateway-image <ref>`", o.Image, o.GOOS, arch)
+	}
+	h := sha256.Sum256(bin)
+	sum := hex.EncodeToString(h[:])
+	if exists && label == sum {
+		return Present, nil
+	}
+	dir, err := os.MkdirTemp("", "cellwall-gateway-bin-*")
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = os.RemoveAll(dir) }()
+	exe := filepath.Join(dir, "cellwall")
+	if err := os.WriteFile(exe, bin, 0o755); err != nil { //nolint:gosec // executable in a private temp dir
+		return 0, err
+	}
+	if err := requireStatic(exe); err != nil {
+		return 0, err
+	}
+	if err := build(ctx, o.Runner, exe, sum, o.Image); err != nil {
+		return 0, err
+	}
+	if exists {
+		return Rebuilt, nil
+	}
+	return Built, nil
+}
+
+// engineArch asks the engine which CPU architecture its Linux containers run, in GOARCH terms.
+func engineArch(ctx context.Context, r engine.Runner) (string, error) {
+	out, err := r.Run(ctx, "docker", "info", "--format", "{{.Architecture}}")
+	if err != nil {
+		return "", fmt.Errorf("could not ask the container engine for its architecture: %w\n  next: check that the engine is running (`cellwall doctor`)", err)
+	}
+	switch a := strings.TrimSpace(string(out)); a {
+	case "x86_64", "amd64":
+		return "amd64", nil
+	case "aarch64", "arm64":
+		return "arm64", nil
+	default:
+		return a, nil
+	}
 }
