@@ -39,4 +39,14 @@ echo "| Engine | OS | internal+isolated host-blocked | DNS no-leak | publish via
 echo "|---|---|---|---|---|---|---|---|"
 echo "| $engine | $host / $osname | $host_blocked | $dns | $ports | $mounts | $nested | compose $compose${rootless:+; rootless} |"
 echo
-echo "Logs: /tmp/s5-*.log. A NO or ERROR needs the log read before it goes in the table."
+echo "Logs: /tmp/s5-*.log (under Git Bash that is %TEMP%). A NO or ERROR needs the log read before it goes in the table."
+for pair in "s1b_host_reachability.sh:$host_blocked" "s2_dns.sh:$dns" "s3_ports.sh:$ports" "s4_protected_paths.sh:$mounts" "s10_nested_mounts.sh:$nested"; do
+  sc="${pair%%:*}"; res="${pair##*:}"
+  if [ "$res" != yes ]; then
+    echo
+    echo "=== $sc: $res (failing lines and the last 25 lines of its log)"
+    grep -E '^(FAIL|ERROR)|VACUOUS' "/tmp/s5-$sc.log" | head -10
+    echo "---"
+    tail -25 "/tmp/s5-$sc.log"
+  fi
+done

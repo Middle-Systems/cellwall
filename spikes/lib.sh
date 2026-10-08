@@ -2,6 +2,10 @@
 # Shared helpers for spike scripts. Throwaway code: results are recorded in docs/spikes.md.
 set -uo pipefail
 
+# Git Bash (MSYS) rewrites POSIX-looking arguments (-v /www:/www, /bin/sh) into Windows paths
+# before docker sees them. Harmless elsewhere; required for the spikes to mean anything there.
+export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
+
 IMAGE="${SPIKE_IMAGE:-busybox:1.36}"
 RUN_ID="cwspike$$"
 PASS=0
