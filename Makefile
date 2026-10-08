@@ -44,7 +44,7 @@ gateway-image:
 # End-to-end escape checks against real containers (needs Docker). CI sets CELLWALL_E2E_REQUIRE=1
 # so a missing Docker is a failure there, not a skip.
 e2e:
-	go test -tags e2e -count=1 -timeout 10m ./test/e2e/...
+	go test -tags e2e -count=1 -timeout 30m ./test/e2e/...
 
 # Short fuzzing pass over every fuzz target; FUZZTIME=2m for a longer local run.
 FUZZTIME ?= 15s

@@ -61,6 +61,9 @@ func Brief(err error) string {
 		if s := strings.TrimSpace(ce.Stderr); s != "" {
 			return s
 		}
+		if ce.Err != nil {
+			return ce.Err.Error() // "exit status 1": the command line is noise to a person
+		}
 	}
 	return err.Error()
 }

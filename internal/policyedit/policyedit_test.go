@@ -198,3 +198,36 @@ func TestNothingIsWrittenThroughASymlink(t *testing.T) {
 		t.Errorf("a file was written through the symlink: %v", entries)
 	}
 }
+
+func TestRemoveSession(t *testing.T) {
+	root := project(t, seed)
+	if _, err := ApplySession(root, Edit{Action: policy.ActionAllow, Hosts: []string{"a.example.com", "b.example.com"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ApplySession(root, Edit{Action: policy.ActionAllow, Hosts: []string{"a.example.com"}, Ports: []int{8443}}); err != nil {
+		t.Fatal(err)
+	}
+	ch, err := RemoveSession(root, []string{"A.example.com"})
+	if err != nil || !ch.Changed {
+		t.Fatalf("%v %v", ch, err)
+	}
+	s, _ := LoadSession(root)
+	if len(s.Rules) != 1 || s.Rules[0].Host != "b.example.com" {
+		t.Errorf("every port variant of a.example.com should go, b stays: %+v", s.Rules)
+	}
+	if err := ch.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	if s, _ = LoadSession(root); len(s.Rules) != 3 {
+		t.Errorf("rollback restored %d rules", len(s.Rules))
+	}
+	if _, err := RemoveSession(root, []string{"a.example.com", "b.example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, SessionFile)); err == nil {
+		t.Error("an emptied session file should be deleted")
+	}
+	if ch, err := RemoveSession(root, []string{"x.example.com"}); err != nil || ch.Changed {
+		t.Errorf("removing from nothing: %v %v", ch, err)
+	}
+}

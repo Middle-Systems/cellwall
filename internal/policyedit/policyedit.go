@@ -318,3 +318,42 @@ func appendRules(src []byte, rules []policy.Rule) ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
+
+// RemoveSession deletes the session allow/deny rules for the given hosts (every port variant) and
+// removes the session file when nothing is left. It never touches the committed policy.
+func RemoveSession(root string, hosts []string) (Change, error) {
+	if why := safefs.SymlinkOnPath(root, SessionFile); why != "" {
+		return Change{}, errors.New(why)
+	}
+	path := filepath.Join(root, filepath.FromSlash(SessionFile))
+	cur, err := LoadSession(root)
+	if err != nil || cur == nil {
+		return Change{}, err
+	}
+	prev, rerr := os.ReadFile(path) //nolint:gosec // see LoadSession
+	if rerr != nil {
+		return Change{}, rerr
+	}
+	drop := map[string]bool{}
+	for _, h := range hosts {
+		drop[strings.ToLower(strings.TrimSpace(h))] = true
+	}
+	kept := slices.DeleteFunc(slices.Clone(cur.Rules), func(r policy.Rule) bool { return drop[r.Host] })
+	if len(kept) == len(cur.Rules) {
+		return Change{}, nil
+	}
+	if len(kept) == 0 {
+		if err := os.Remove(path); err != nil {
+			return Change{}, err
+		}
+		return Change{Changed: true, path: path, prev: prev, existed: true}, nil
+	}
+	body, err := marshal(&policy.Policy{Version: policy.Version, Rules: kept})
+	if err != nil {
+		return Change{}, err
+	}
+	if err := safefs.WriteAtomic(path, body, 0o644); err != nil {
+		return Change{}, err
+	}
+	return Change{Changed: true, path: path, prev: prev, existed: true}, nil
+}

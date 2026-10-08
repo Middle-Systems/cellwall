@@ -268,6 +268,20 @@ func (r *Result) warnProtected() {
 }
 
 // appearedSince compares the previous manifest's missing paths with the filesystem.
+// MountedPaths returns the protected paths that existed at the last prepare and were mounted
+// read-only, relative to the project root.
+func MountedPaths(root string) []string {
+	b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(manifestPath))) //nolint:gosec // project-relative
+	if err != nil {
+		return nil
+	}
+	var m manifest
+	if json.Unmarshal(b, &m) != nil {
+		return nil
+	}
+	return append([]string(nil), m.Mounted...)
+}
+
 func appearedSince(root string) []string {
 	b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(manifestPath))) //nolint:gosec // project-relative
 	if err != nil {

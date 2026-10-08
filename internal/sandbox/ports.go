@@ -97,7 +97,7 @@ func Ports(ctx context.Context, e Env, root string) (*PortsReport, error) {
 	var listeners map[int]string
 	if up, _ := Running(ctx, e, p, compose.AgentService); up {
 		r.AgentRunning = true
-		out, err := p.Output(ctx, e.Runner, "exec", "-T", compose.AgentService, "sh", "-c", "cat /proc/net/tcp /proc/net/tcp6 2>/dev/null")
+		out, err := p.Output(ctx, e.Runner, "exec", "-T", compose.AgentService, "sh", "-c", "cat /proc/net/tcp; cat /proc/net/tcp6 2>/dev/null; true")
 		if err != nil {
 			r.Warnings = append(r.Warnings, "could not inspect the agent's listeners: "+Brief(err))
 		} else {
