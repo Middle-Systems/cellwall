@@ -23,6 +23,7 @@ import (
 
 	"github.com/middle-systems/cellwall/internal/policy"
 	"github.com/middle-systems/cellwall/internal/safefs"
+	"github.com/middle-systems/cellwall/internal/yamlkeep"
 )
 
 // Paths, relative to the project root.
@@ -316,7 +317,7 @@ func appendRules(src []byte, rules []policy.Rule) ([]byte, error) {
 	if err := enc.Close(); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return yamlkeep.BlankLines(src, buf.Bytes()), nil
 }
 
 // RemoveSession deletes the session allow/deny rules for the given hosts (every port variant) and

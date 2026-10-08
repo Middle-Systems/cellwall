@@ -15,6 +15,7 @@ import (
 
 	"github.com/middle-systems/cellwall/internal/config"
 	"github.com/middle-systems/cellwall/internal/safefs"
+	"github.com/middle-systems/cellwall/internal/yamlkeep"
 )
 
 // Change records an edit so it can be undone if what depends on it is refused.
@@ -97,10 +98,11 @@ func SetPorts(root string, ports []int) (Change, error) {
 	if err := enc.Close(); err != nil {
 		return Change{}, err
 	}
-	if bytes.Equal(buf.Bytes(), src) {
+	out := yamlkeep.BlankLines(src, buf.Bytes())
+	if bytes.Equal(out, src) {
 		return Change{}, nil
 	}
-	if err := safefs.WriteAtomic(path, buf.Bytes(), 0o644); err != nil {
+	if err := safefs.WriteAtomic(path, out, 0o644); err != nil {
 		return Change{}, err
 	}
 	return Change{Changed: true, path: path, prev: src}, nil

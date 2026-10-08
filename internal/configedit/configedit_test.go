@@ -56,6 +56,10 @@ func TestSetPortsKeepsEverythingElse(t *testing.T) {
 	if got := load(t, root).Ports; !reflect.DeepEqual(got, []int{3000, 5173, 8080}) {
 		t.Errorf("ports = %v", got)
 	}
+	// Blank lines are part of how people lay a file out; yaml.v3 drops them, so they are restored.
+	if strings.Count(text, "\n\n") != strings.Count(cfg, "\n\n") {
+		t.Errorf("blank lines were not preserved:\n%s", text)
+	}
 }
 
 func TestSetPortsIsIdempotentAndReversible(t *testing.T) {
