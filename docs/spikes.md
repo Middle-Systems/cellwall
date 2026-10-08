@@ -13,7 +13,7 @@ Rancher Desktop** — those columns are explicitly *pending*.
 | S2 | done (Linux/Docker) | **GO** | No external DNS resolution and no port-53 packets leave the host from the sandbox network. |
 | S3 | done (Linux/Docker) | **GO** | Publishing from an internal-only container is silently dead; gateway on both networks forwards fine. |
 | S4 | Linux done; macOS/Windows **pending** | **GO, with required changes** | Nested ro mounts work, but protected paths can be evaded by renaming a parent directory. See ADR 0002. |
-| S5 | **partial** | Linux (Windows: first run was invalid, see note) | Docker Engine on Linux passes every row (below). Other engines need their hosts: run `spikes/s5_engine_matrix.sh`, which prints a table row. |
+| S5 | **partial** | Linux, Windows (Docker Desktop) | Docker Engine on Linux passes every row (below). Other engines need their hosts: run `spikes/s5_engine_matrix.sh`, which prints a table row. |
 | S6 | **partial** | Windows | One authenticated Claude Code session on Docker Desktop: the preset's hosts were enough to sign in and work (including a web-search tool call). Two optional hosts were denied at start-up without visible effect. See below. |
 | S7 | done (Linux/Docker) | **GO** | Warm rebuild 0.7 s vs 7 s cold; layer order matters. |
 | S8 | **partial** | Linux, Windows | Windows (Docker Desktop, bind from the Windows filesystem) is 65-300x slower than a volume; Linux shows no consistent difference. macOS and bind-from-WSL-filesystem pending. |
@@ -122,7 +122,17 @@ Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5
 
 ## Pending spikes
 
-- **S5 on Windows, first run (Docker Desktop 4.92.0, Git Bash): not valid, do not use.** The
+- **S5 on Windows, second run (Docker Desktop 4.92.0, Engine 29.8.0, Git Bash, after the script
+  fixes): DNS no-leak yes, publish via gateway yes, read-only nested mounts yes, host reachability
+  n/a (engine in a VM; covered by `cellwall verify`), nested mounts (S10) 10 of 11 pass.** The one
+  difference is real: the `tmpfs` that hides the state directory is world-writable on Docker
+  Desktop (the agent user could write scratch files into it) but root-owned 0755 on Docker Engine
+  29.6. Nothing reaches the host either way (the spike's host-side checks pass) and it is memory
+  only, so this is not an escape, but the behaviour depended on the engine. The generated override
+  now sets the mode explicitly (0555, one page), which is read-only on both; the Linux run of the
+  spike passes with it and Compose renders it as `555 root`. To re-confirm on Docker Desktop, rerun
+  `spikes/s10_nested_mounts.sh` after pulling.
+- **S5 on Windows, first run (same machine, before the script fixes): not valid, do not use.** The
   host-side tools and paths the spikes assumed (`hostname -I`, `wget`, `nc`, POSIX temp paths that
   the Windows daemon cannot resolve) did not exist, so controls failed and results read NO/ERROR.
   Only DNS no-leak (yes) and the read-only evasion checks inside s4 (all PASS) ran meaningfully.

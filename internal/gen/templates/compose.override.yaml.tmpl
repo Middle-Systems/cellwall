@@ -27,6 +27,12 @@ services:
       # Hides the gateway's state directory (effective policy, audit log) from the agent.
       - type: tmpfs
         target: /workspace/{{.StateRel}}
+        # Explicit, because engines differ: the default is root-owned 0755 on Docker Engine 29.6 but
+        # world-writable on Docker Desktop 4.92 (spike S5/S10). 0555 (= 365) and a one-page size make
+        # it read-only and useless as scratch space everywhere.
+        tmpfs:
+          size: 4096
+          mode: 365
 {{- end}}
 {{- else}}
 services: {}
