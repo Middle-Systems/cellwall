@@ -37,4 +37,4 @@ On a clean checkout of a small git repository:
 |---|---|---|---|---|---|
 | — | Ubuntu 24.04 (CI) | Docker Engine | each commit | e2e + `verify --strict` pass | automated |
 | _pending_ | macOS (Apple silicon) | | | | needs a Mac |
-| _pending_ | Windows 11 + WSL2 | Docker Desktop | | | |
+| 2026-10-08 | Windows 10 22H2 (build 19045.6466), WSL2 backend | Docker Desktop 4.92.0 (Engine 29.8.0, Compose 5.5.1) | dev build from branch, `go build -tags embedgw` (version string `dev`, commit none) | checklist passed after the console fix below (reported by the maintainer) | Windows 11 is still untested. First run in a JetBrains terminal (pipes, not a console) sent CRLF to the shell; fixed by detecting real consoles with GetConsoleMode and normalising CRLF when there is no TTY. |
