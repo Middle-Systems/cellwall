@@ -1,4 +1,4 @@
-# cellwall:generated sha256=3556ec4c70502db728f5866f5630e0add525e496b9d2820f8dcda122fd5738ab
+# cellwall:generated sha256=df32236e8cd905a693b88eea29155075afa3ecf8683f5068db5d83bc80276f94
 # Sandbox topology for node-vite (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -36,7 +36,19 @@ services:
       - "50"
       - "--audit-max-files"
       - "5"
+      - "--forward-port"
+      - "5173"
+      - "--forward-target"
+      - "agent"
     networks: [sandbox, egress]
+    # Previews: the gateway publishes the port and relays it to the agent over `sandbox`. The agent
+    # sits on an internal network and cannot publish ports itself. The forwarder's upstream is
+    # fixed to the agent; it is not an outbound path.
+    ports:
+      - target: 5173
+        published: "5173"
+        protocol: tcp
+        host_ip: 127.0.0.1
     user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
     read_only: true
     cap_drop: [ALL]

@@ -1,4 +1,4 @@
-# cellwall:generated sha256=689ceda09fdad87d44ef1a20e05633364b6aafa9ded37f95d9b04ced151de41d
+# cellwall:generated sha256=2c01cd59b3a1f8eead1180860617aa3628fea110fac49f0d59fa1126a6e08342
 # Sandbox topology for python-flask (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -39,7 +39,19 @@ services:
       - "50"
       - "--audit-max-files"
       - "5"
+      - "--forward-port"
+      - "5000"
+      - "--forward-target"
+      - "agent"
     networks: [sandbox, egress]
+    # Previews: the gateway publishes the port and relays it to the agent over `sandbox`. The agent
+    # sits on an internal network and cannot publish ports itself. The forwarder's upstream is
+    # fixed to the agent; it is not an outbound path.
+    ports:
+      - target: 5000
+        published: "5000"
+        protocol: tcp
+        host_ip: 127.0.0.1
     user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
     read_only: true
     cap_drop: [ALL]

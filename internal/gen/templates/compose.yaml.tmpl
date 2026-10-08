@@ -43,7 +43,31 @@ services:
 {{- if .Cfg.Unsafe.AuditFailOpen}}
       - "--audit-fail-open"   # UNSAFE (unsafe.audit_fail_open)
 {{- end}}
+{{- range .Ports}}
+      - "--forward-port"
+      - "{{.}}"
+{{- end}}
+{{- if .Ports}}
+      - "--forward-target"
+      - "agent"
+{{- end}}
     networks: [sandbox, egress]
+{{- if .Ports}}
+    # Previews: the gateway publishes the port and relays it to the agent over `sandbox`. The agent
+    # sits on an internal network and cannot publish ports itself. The forwarder's upstream is
+    # fixed to the agent; it is not an outbound path.
+    ports:
+{{- range .Ports}}
+      - target: {{.}}
+        published: "{{.}}"
+        protocol: tcp
+{{- if $.Cfg.Unsafe.PublishAllInterfaces}}
+        # UNSAFE (unsafe.publish_all_interfaces): reachable from other machines on your network.
+{{- else}}
+        host_ip: 127.0.0.1
+{{- end}}
+{{- end}}
+{{- end}}
     user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
     read_only: true
     cap_drop: [ALL]

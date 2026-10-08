@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -269,4 +270,13 @@ func TestParsePSAcceptsBothComposeFormats(t *testing.T) {
 	if len(parsePS(nil)) != 0 {
 		t.Error("empty output means no containers")
 	}
+}
+
+func listenLoopback(t *testing.T) (net.Listener, int) {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ln, ln.Addr().(*net.TCPAddr).Port
 }

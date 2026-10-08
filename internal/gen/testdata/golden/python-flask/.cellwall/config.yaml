@@ -42,8 +42,8 @@ devcontainer:
   # so an existing devcontainer setup is left untouched.
   dir: .devcontainer
 
-# Dev-server ports published on 127.0.0.1 through the gateway (arrives in M4). The server inside
-# the sandbox must listen on 0.0.0.0, not localhost.
+# Dev-server ports published on 127.0.0.1 through the gateway (`cellwall ports ls|add|rm`).
+# The server inside the sandbox must listen on 0.0.0.0, not localhost.
 ports: [5000]
 
 hardening:

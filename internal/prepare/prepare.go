@@ -305,6 +305,21 @@ func presetNames(c *policy.Compiled) []string {
 
 // effectivePolicy layers the policies and compiles them.
 func effectivePolicy(root, globalDir string, cfg *config.Config) (*policy.Compiled, []string, error) {
+	merged, warns, err := MergedPolicy(root, globalDir, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	c, err := policy.Compile(merged, false)
+	if err != nil {
+		return nil, nil, fmt.Errorf("policy: %w", err)
+	}
+	return c, warns, nil
+}
+
+// MergedPolicy layers the agent's presets, the user-global policy, the project policy and the
+// session rules into one unexpanded, uncompiled policy. Compile refuses dangerous rules; this
+// does not, so `policy lint` can show them.
+func MergedPolicy(root, globalDir string, cfg *config.Config) (*policy.Policy, []string, error) {
 	var warns []string
 	agent := &policy.Policy{Version: policy.Version, Presets: AgentPresets(cfg)}
 
@@ -343,12 +358,7 @@ func effectivePolicy(root, globalDir string, cfg *config.Config) (*policy.Compil
 	if err != nil {
 		return nil, nil, err
 	}
-	merged := policy.Merge(agent, global, project, session)
-	c, err := policy.Compile(merged, false)
-	if err != nil {
-		return nil, nil, fmt.Errorf("policy: %w", err)
-	}
-	return c, warns, nil
+	return policy.Merge(agent, global, project, session), warns, nil
 }
 
 // SessionRules describes the rules in the session layer for display next to other relaxations.

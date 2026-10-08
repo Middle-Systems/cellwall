@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/middle-systems/cellwall/internal/audit"
+	"github.com/middle-systems/cellwall/internal/forward"
 	"github.com/middle-systems/cellwall/internal/policy"
 	"github.com/middle-systems/cellwall/internal/proxy"
 )
@@ -40,6 +41,11 @@ type Options struct {
 	ReloadInterval time.Duration
 	ShutdownGrace  time.Duration
 	Logger         *slog.Logger
+
+	// Forward lists preview ports relayed to ForwardTarget (the agent) on the same port. Empty
+	// disables the forwarder.
+	Forward       []int
+	ForwardTarget string
 
 	// OnListening is called once both listeners are bound (used by tests to learn ephemeral ports).
 	OnListening func(proxyAddr, adminAddr net.Addr)
@@ -129,8 +135,22 @@ func Run(ctx context.Context, o Options) error {
 		o.OnListening(proxyLn.Addr(), adminLn.Addr())
 	}
 
-	errc := make(chan error, 2)
+	errc := make(chan error, 3)
 	go func() { errc <- srv.Serve(proxyLn) }()
+	if len(o.Forward) > 0 {
+		fw, err := forward.New(forward.Config{Ports: o.Forward, Target: o.ForwardTarget, Logger: log})
+		if err != nil {
+			_ = proxyLn.Close()
+			_ = adminLn.Close()
+			return err
+		}
+		log.Info("preview forwarder", slog.Any("ports", o.Forward), slog.String("target", o.ForwardTarget))
+		go func() {
+			if err := fw.Run(ctx); err != nil {
+				errc <- err
+			}
+		}()
+	}
 	go func() {
 		if err := admin.Serve(adminLn); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errc <- err

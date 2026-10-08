@@ -1,4 +1,4 @@
-# cellwall:generated sha256=db6914a5a9768cc8e0a6c6085e4c90329f0e61e252ab07696509791e9894cba5
+# cellwall:generated sha256=23efa753137b66bf13d91dd4ef5b78471ac0cbab643e9e3a6bd72bd001f37ee1
 # Sandbox topology for ruby-rails (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -35,7 +35,19 @@ services:
       - "50"
       - "--audit-max-files"
       - "5"
+      - "--forward-port"
+      - "3000"
+      - "--forward-target"
+      - "agent"
     networks: [sandbox, egress]
+    # Previews: the gateway publishes the port and relays it to the agent over `sandbox`. The agent
+    # sits on an internal network and cannot publish ports itself. The forwarder's upstream is
+    # fixed to the agent; it is not an outbound path.
+    ports:
+      - target: 3000
+        published: "3000"
+        protocol: tcp
+        host_ip: 127.0.0.1
     user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
     read_only: true
     cap_drop: [ALL]

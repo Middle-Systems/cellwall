@@ -45,6 +45,8 @@ func newGatewayCmd(g *globalFlags) *cobra.Command {
 	f.Int64Var(&maxMB, "audit-max-size-mb", 50, "rotate the audit log after this many MiB")
 	f.IntVar(&o.AuditMaxFiles, "audit-max-files", 5, "rotated audit files to keep")
 	f.BoolVar(&failOpen, "audit-fail-open", false, "UNSAFE: keep allowing connections when the audit log cannot be written")
+	f.IntSliceVar(&o.Forward, "forward-port", nil, "preview port to relay to --forward-target on the same port (repeatable)")
+	f.StringVar(&o.ForwardTarget, "forward-target", "agent", "fixed upstream host for forwarded ports")
 	f.DurationVar(&o.ReloadInterval, "reload-interval", gateway.DefaultReloadInterval, "how often to check the policy file")
 	f.DurationVar(&o.ShutdownGrace, "shutdown-grace", gateway.DefaultShutdownGrace, "how long to let tunnels drain on shutdown")
 	f.StringVar(&level, "log-level", "info", "log level: debug, info, warn, error")

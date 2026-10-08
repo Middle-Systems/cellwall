@@ -1,4 +1,4 @@
-# cellwall:generated sha256=8858335443800f4f473faa8834df9211dfe2f7378b263eb9558435641e2564af
+# cellwall:generated sha256=fd2ec8918a319d1609d6b682847e58ccc26b213bf736302f7c3af4c0746cc3ac
 # Sandbox topology for php-laravel (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -36,7 +36,19 @@ services:
       - "50"
       - "--audit-max-files"
       - "5"
+      - "--forward-port"
+      - "8000"
+      - "--forward-target"
+      - "agent"
     networks: [sandbox, egress]
+    # Previews: the gateway publishes the port and relays it to the agent over `sandbox`. The agent
+    # sits on an internal network and cannot publish ports itself. The forwarder's upstream is
+    # fixed to the agent; it is not an outbound path.
+    ports:
+      - target: 8000
+        published: "8000"
+        protocol: tcp
+        host_ip: 127.0.0.1
     user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
     read_only: true
     cap_drop: [ALL]

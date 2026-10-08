@@ -320,3 +320,63 @@ func TestStatusWithNothingRunning(t *testing.T) {
 		t.Fatalf("status --json: %v\n%s", err, out)
 	}
 }
+
+func TestPortsAddRecreatesOnlyTheGatewayWhenRunning(t *testing.T) {
+	log := fakeEngine(t)
+	dir := initialisedProject(t, "go-http")
+	// 3000 is free on the machine running the test with overwhelming probability; the fake engine
+	// pretends the sandbox is running, so the host-side port check is not the subject here.
+	out, _, err := runWith(t, "", "ports", "add", "--project-dir", dir, "39173")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if !strings.Contains(out, "added [39173]") || !strings.Contains(out, "gateway was recreated") {
+		t.Errorf("output:\n%s", out)
+	}
+	if firstIndex(calls(t, log), "up -d --no-deps --wait gateway") < 0 {
+		t.Errorf("only the gateway should be recreated:\n%v", calls(t, log))
+	}
+	cfg, _ := os.ReadFile(filepath.Join(dir, ".cellwall", "config.yaml"))
+	if !strings.Contains(string(cfg), "39173") {
+		t.Errorf("config:\n%s", cfg)
+	}
+
+	out, _, err = runWith(t, "", "ports", "rm", "--project-dir", dir, "39173")
+	if err != nil || !strings.Contains(out, "removed [39173]") {
+		t.Fatalf("rm: %v\n%s", err, out)
+	}
+	if _, _, err = runWith(t, "", "ports", "rm", "--project-dir", dir, "39173"); err == nil || !strings.Contains(err.Error(), "ports ls") {
+		t.Errorf("removing a port twice should explain: %v", err)
+	}
+	if _, _, err = runWith(t, "", "ports", "add", "--project-dir", dir, "http"); err == nil {
+		t.Error("a non-numeric port must be refused")
+	}
+}
+
+func TestPortsAddWithTheSandboxDownOnlyEditsFiles(t *testing.T) {
+	log := fakeEngine(t)
+	dir := initialisedProject(t, "go-http")
+	t.Setenv("FAKE_RUNNING", "0")
+	out, _, err := runWith(t, "", "ports", "add", "--project-dir", dir, "39174")
+	if err != nil || !strings.Contains(out, "next `cellwall up`") {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if firstIndex(calls(t, log), " up ") >= 0 {
+		t.Error("nothing should be recreated when the sandbox is down")
+	}
+}
+
+func TestPortsLsListsConfiguredPorts(t *testing.T) {
+	fakeEngine(t)
+	dir := initialisedProject(t, "node-vite")
+	t.Setenv("FAKE_RUNNING", "0")
+	out, _, err := runWith(t, "", "ports", "ls", "--project-dir", dir)
+	if err != nil || !strings.Contains(out, "5173") || !strings.Contains(out, "agent not running") {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	out, _, err = runWith(t, "", "ports", "ls", "--project-dir", dir, "--json")
+	var rep struct{ Ports []struct{ Port int } }
+	if err != nil || json.Unmarshal([]byte(out), &rep) != nil || len(rep.Ports) != 1 || rep.Ports[0].Port != 5173 {
+		t.Fatalf("json: %v\n%s", err, out)
+	}
+}

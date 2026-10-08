@@ -1,4 +1,4 @@
-# cellwall:generated sha256=dabf39c4c6d77331a2b2b477ca048e015b00b1cfcee6dce0ac024a3c996a7f64
+# cellwall:generated sha256=2cc389a32307786423aa8c2a123e6e07644c840543ad1b691f8819b8dcb3d0ee
 # Sandbox topology for polyglot (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -40,7 +40,25 @@ services:
       - "50"
       - "--audit-max-files"
       - "5"
+      - "--forward-port"
+      - "5173"
+      - "--forward-port"
+      - "8000"
+      - "--forward-target"
+      - "agent"
     networks: [sandbox, egress]
+    # Previews: the gateway publishes the port and relays it to the agent over `sandbox`. The agent
+    # sits on an internal network and cannot publish ports itself. The forwarder's upstream is
+    # fixed to the agent; it is not an outbound path.
+    ports:
+      - target: 5173
+        published: "5173"
+        protocol: tcp
+        host_ip: 127.0.0.1
+      - target: 8000
+        published: "8000"
+        protocol: tcp
+        host_ip: 127.0.0.1
     user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
     read_only: true
     cap_drop: [ALL]

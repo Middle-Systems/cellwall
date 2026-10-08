@@ -104,6 +104,15 @@ func Up(ctx context.Context, e Env, root string, o UpOptions) (*UpResult, error)
 	if err != nil {
 		return nil, fmt.Errorf("%w\n  next: fix the problem above, then re-run", err)
 	}
+	// A preview port something else already holds would make `compose up` fail obscurely. Only
+	// check while the gateway is down: when it is up, it holds those ports itself.
+	if p0, err := compose.Open(root, e.GlobalDir); err == nil {
+		if up, _ := Running(ctx, e, p0, compose.GatewayService); !up {
+			if err := CheckHostPorts(res.Config.Ports); err != nil {
+				return nil, err
+			}
+		}
+	}
 	outcome, err := gatewayimage.Ensure(ctx, gatewayimage.Options{
 		Runner: e.Runner, Image: res.GatewayImage, Exe: e.Exe, GOOS: e.GOOS, Log: e.logw(),
 	})

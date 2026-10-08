@@ -175,3 +175,51 @@ func TestGeneratedComposeIsValid(t *testing.T) {
 		})
 	}
 }
+
+func TestPolicyLint(t *testing.T) {
+	dir := fixture(t, "go-http")
+	if _, _, err := run(t, "init", "--project-dir", dir); err != nil {
+		t.Fatal(err)
+	}
+	out, _, err := run(t, "policy", "lint", "--project-dir", dir)
+	if err != nil || !strings.Contains(out, "0 error(s)") {
+		t.Fatalf("a fresh project must lint clean: %v\n%s", err, out)
+	}
+
+	bad := filepath.Join(t.TempDir(), "bad.yaml")
+	body := "version: 1\nrules:\n  - host: \"*.github.io\"\n  - host: \"**.com\"\n  - host: internal.example.org\n    unsafe_allow_private: true\n"
+	if err := os.WriteFile(bad, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, _, err = run(t, "policy", "lint", bad)
+	var ee *ExitError
+	if !errors.As(err, &ee) || ee.Code != 1 {
+		t.Fatalf("errors must exit 1, got %v", err)
+	}
+	for _, want := range []string{"wildcard-user-content", "wildcard-tld", "unsafe-private", "relaxations", "next:"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output lacks %q:\n%s", want, out)
+		}
+	}
+
+	// A warning alone passes, unless --strict.
+	warn := filepath.Join(t.TempDir(), "warn.yaml")
+	if err := os.WriteFile(warn, []byte("version: 1\nrules:\n  - host: internal.example.org\n    unsafe_allow_private: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := run(t, "policy", "lint", warn); err != nil {
+		t.Errorf("a warning alone must not fail: %v", err)
+	}
+	if _, _, err := run(t, "policy", "lint", "--strict", warn); err == nil {
+		t.Error("--strict must fail on a warning")
+	}
+
+	out, _, _ = run(t, "policy", "lint", "--json", bad)
+	var reps []lintReport
+	if json.Unmarshal([]byte(out), &reps) != nil || len(reps) != 1 || reps[0].Errors != 2 {
+		t.Errorf("json: %s", out)
+	}
+	if _, _, err := run(t, "policy", "lint", filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
+		t.Error("a missing file must be an error")
+	}
+}

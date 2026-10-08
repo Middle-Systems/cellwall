@@ -1,4 +1,4 @@
-# cellwall:generated sha256=0a2b0f759e6e5419345cf8631259e3d3f06756181b95e48938e6c66cfa2f8cae
+# cellwall:generated sha256=934f8eec0094d32e78836d5d9f59722a5e279b1f937815529b61a6a48d84a589
 # Sandbox topology for java-maven (cellwall docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
@@ -36,7 +36,19 @@ services:
       - "50"
       - "--audit-max-files"
       - "5"
+      - "--forward-port"
+      - "8080"
+      - "--forward-target"
+      - "agent"
     networks: [sandbox, egress]
+    # Previews: the gateway publishes the port and relays it to the agent over `sandbox`. The agent
+    # sits on an internal network and cannot publish ports itself. The forwarder's upstream is
+    # fixed to the agent; it is not an outbound path.
+    ports:
+      - target: 8080
+        published: "8080"
+        protocol: tcp
+        host_ip: 127.0.0.1
     user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
     read_only: true
     cap_drop: [ALL]
