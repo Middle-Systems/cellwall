@@ -65,6 +65,9 @@ func TestVolumeMode(t *testing.T) {
 	t.Cleanup(func() { run(bin, "", "down", "--volumes", "--yes") })
 
 	must(bin, "", "init", "--workspace", "volume")
+	// A clean host tree, as a person would have before applying: init's files are committed.
+	must("git", "", "add", "-A")
+	must("git", "", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "add cellwall")
 	if out := must(bin, "", "up"); !strings.Contains(out, "seeded") && !strings.Contains(out, "copy") {
 		t.Errorf("up should say it seeded the volume:\n%s", out)
 	}
