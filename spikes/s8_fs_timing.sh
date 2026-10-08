@@ -12,6 +12,11 @@
 # case that matters, and again with a path inside WSL (/home/you/s8) for comparison.
 source "$(dirname "$0")/lib.sh"
 
+# Git Bash (MSYS) rewrites anything that looks like a POSIX path in arguments (/work becomes
+# C:/Program Files/Git/work) before docker sees it. Turn that off, and give docker a Windows-style
+# path for the host directory when cygpath is available.
+export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
+
 FILES=20000; NPM=0; HOSTDIR=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -26,6 +31,8 @@ IMG="${S8_IMAGE:-node:lts-bookworm-slim}"
 [ "$NPM" -eq 0 ] && IMG="${S8_IMAGE:-busybox:1.36}"
 [ -z "$HOSTDIR" ] && HOSTDIR="$(mktemp -d)" && defer "rm -rf $HOSTDIR"
 mkdir -p "$HOSTDIR/bind"
+MOUNTDIR="$HOSTDIR"
+if command -v cygpath >/dev/null 2>&1; then MOUNTDIR="$(cygpath -m "$HOSTDIR")"; fi
 VOL="${RUN_ID}-vol"
 docker volume create "$VOL" >/dev/null && defer "docker volume rm -f $VOL"
 
@@ -49,15 +56,22 @@ if [ "$NPM" = 1 ]; then
 fi
 EOS
 
-run_mode() { # run_mode <label> <mount-arg>
-  docker run --rm -e FILES="$FILES" -e NPM="$NPM" -v "$2" -e S8_SCRIPT="$WORKLOAD" "$IMG" \
-    sh -c 'eval "$S8_SCRIPT"' sh /work 2>&1 | grep -E '^[a-z_]+ [0-9]+$' | sed "s/^/$1 /"
+run_mode() { # run_mode <label> <mount-arg>; prints measurements, or the engine's output on failure
+  local out
+  out="$(docker run --rm -e FILES="$FILES" -e NPM="$NPM" -v "$2" -e S8_SCRIPT="$WORKLOAD" "$IMG" \
+    sh -c 'eval "$S8_SCRIPT"' sh /work 2>&1)"
+  if echo "$out" | grep -qE '^[a-z_]+ [0-9]+$'; then
+    echo "$out" | grep -E '^[a-z_]+ [0-9]+$' | sed "s/^/$1 /"
+  else
+    echo "--- $1: no measurements; docker said:" >&2
+    echo "$out" | tail -15 >&2
+  fi
 }
 
 echo "files=$FILES image=$IMG hostdir=$HOSTDIR"
-BIND_OUT="$(run_mode bind "$HOSTDIR/bind:/work")"
+BIND_OUT="$(run_mode bind "$MOUNTDIR/bind:/work")"
 VOL_OUT="$(run_mode volume "$VOL:/work")"
-[ -n "$BIND_OUT" ] && [ -n "$VOL_OUT" ] || { echo "no measurements produced (is Docker running?)"; exit 1; }
+[ -n "$BIND_OUT" ] && [ -n "$VOL_OUT" ] || { echo "no measurements produced for at least one mode (see the output above)"; exit 1; }
 
 printf '\n%-18s %12s %12s %8s\n' phase "bind (ms)" "volume (ms)" "ratio"
 for p in $(echo "$BIND_OUT" | awk '{print $2}'); do
