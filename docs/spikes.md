@@ -16,7 +16,7 @@ Rancher Desktop** — those columns are explicitly *pending*.
 | S5 | **partial** | Linux | Docker Engine on Linux passes every row (below). Other engines need their hosts: run `spikes/s5_engine_matrix.sh`, which prints a table row. |
 | S6 | **pending** | n/a | Needs an authenticated agent session; procedure in `spikes/s6_agent_endpoints.md`. |
 | S7 | done (Linux/Docker) | **GO** | Warm rebuild 0.7 s vs 7 s cold; layer order matters. |
-| S8 | **partial** | Linux | Script ready (`spikes/s8_fs_timing.sh`); Linux baseline below shows no bind/volume difference. macOS and Windows numbers pending. |
+| S8 | **partial** | Linux, Windows | Windows (Docker Desktop, bind from the Windows filesystem) is 65-300x slower than a volume; Linux shows no consistent difference. macOS and bind-from-WSL-filesystem pending. |
 | S9 | done (Linux/Docker) | **GO, design change** | Single-file bind mounts go stale on atomic replace; mount the policy *directory*. |
 | S10 | done (Linux/Docker) | **GO, with requirements** | Cache volumes need the image to pre-create+chown the dir; Docker leaves root-owned placeholders in the repo unless `prepare` pre-creates them; a tmpfs cleanly hides the gateway state. |
 
@@ -147,8 +147,27 @@ Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5
   | read all | 80 | 100 |
   | delete tree | 150 | 130 |
 
-  On Linux the two modes cost the same, as expected; the default stays `bind` there. The question
-  for macOS and Windows is how large the gap is across the VM boundary.
+  On Linux the two modes cost about the same (a second run showed a 2x write difference, so single
+  runs are noisy); the default stays `bind` there.
+
+  Windows 10 22H2, Docker Desktop 4.92.0 (Engine 29.8.0, WSL2 backend), 20000 small files,
+  `busybox:1.36`, one run per row set. The bind directory is on the Windows filesystem (NTFS): the
+  first run used `--dir /c/Users/jack/s8`, the second `--dir /tmp/s8`, which under Git Bash is
+  also a Windows path (`%TEMP%`), so the two are repeats of the same case.
+
+  | phase | bind, run 1 (ms) | volume, run 1 (ms) | ratio | bind, run 2 (ms) | volume, run 2 (ms) | ratio |
+  |---|---|---|---|---|---|---|
+  | write small files | 101460 | 1550 | 65x | 100840 | 1130 | 89x |
+  | walk and stat | 66940 | 230 | 291x | 66000 | 220 | 300x |
+  | read all | 70040 | 380 | 184x | 64120 | 340 | 189x |
+  | delete tree | 46630 | 420 | 111x | 42600 | 500 | 85x |
+
+  The two runs agree within about 10%, so the gap is real, not noise: working directly on a
+  Windows-filesystem bind mount takes minutes for a 20,000-file tree (a `node_modules`-sized
+  workload) where a volume takes about a second. This justifies `volume` as the Windows default.
+  **Not yet measured:** a bind mount of a directory inside the WSL filesystem (run the script from
+  a WSL shell with `--dir /home/<you>/s8`), which is the case the platform notes recommend for
+  people who want a bind mount on Windows; and macOS.
 
 ## CI notes (GitHub-hosted ubuntu runner, run 3 onward)
 

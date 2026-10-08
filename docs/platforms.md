@@ -11,7 +11,7 @@ containers inside a VM, so the same claims need to be checked there by a person.
 | Default workspace | `bind` | `volume` (git repos with a commit) | `volume` |
 | Gateway image | built from the running binary | built from the Linux binary inside the release binary | same |
 | Protected paths | read-only overlay mounts | not applicable in volume mode (host files are not shared) | same |
-| Bind mode | fast | slow file sharing; works | slow across the VM boundary; keep the project in the WSL filesystem |
+| Bind mode | fast | slow file sharing; works | very slow from the Windows filesystem (measured 65-300x slower than a volume for 20,000 small files, S8); keep the project in the WSL filesystem if you need bind |
 
 Volume mode copies the repository into the sandbox. Work comes back with `cellwall fetch` and is
 applied with `cellwall fetch --apply` (see ADR 0009). Ignored files (for example `.env`) are not
