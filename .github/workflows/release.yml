@@ -20,9 +20,12 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      # setup-go v7 unconditionally exports GOTOOLCHAIN=local; release tooling below
+      # requires a newer Go than go.mod's minimum, so restore auto-switching for this job.
+      - run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
       # Release tooling is built from source at pinned versions (verified through the Go module
       # checksum database) rather than downloaded as binaries.
       - name: Install release tools
