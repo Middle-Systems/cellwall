@@ -1,0 +1,74 @@
+# kennel:generated sha256=581e069fb25109e441639355400cbfef3ccca274323755631dc329042f459ab6
+# Agent image for rust-axum.
+# Built on the HOST network (not sandboxed). At run time the container is attached only to the
+# internal `sandbox` network, so it reaches the internet only through the gateway.
+# Every base and toolchain image is pinned by digest (they move only when you upgrade kennel and re-run `kennel init`).
+# Edit .kennel/config.yaml and re-run `kennel init`; hand edits to this file are detected and kept.
+
+ARG UID=1000
+ARG GID=1000
+
+FROM node:lts-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS tool-node
+
+FROM rust:slim-bookworm@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730 AS tool-rust
+
+FROM tool-node AS agent-claude
+WORKDIR /opt/claude
+COPY agent/claude/package.json agent/claude/package-lock.json* ./
+# Claude Code 2.1.286 is installed from an npm lockfile, so every package is checked against
+# a recorded sha512 integrity hash: `npm ci` fails if the registry serves different bytes.
+RUN npm ci --omit=dev --no-audit --no-fund
+
+FROM debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251 AS agent
+ARG UID
+ARG GID
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential \
+      ca-certificates \
+      curl \
+      git \
+      jq \
+      less \
+      libssl-dev \
+      make \
+      pkg-config \
+      procps \
+      ripgrep \
+      unzip
+
+COPY --from=tool-rust /usr/local/rustup /usr/local/rustup
+COPY --from=tool-rust /usr/local/cargo/bin /usr/local/cargo/bin
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/home/dev/.cargo \
+    PATH=/usr/local/cargo/bin:/home/dev/.cargo/bin:${PATH}
+COPY --from=agent-claude /opt/claude /opt/claude
+RUN ln -s /opt/claude/node_modules/.bin/claude /usr/local/bin/claude \
+ && DISABLE_AUTOUPDATER=1 claude --version
+
+# Non-root user matching the host UID/GID so bind-mounted files keep sane ownership.
+RUN set -eux; \
+    existing="$(getent passwd "${UID}" | cut -d: -f1 || true)"; \
+    if [ -n "${existing}" ] && [ "${existing}" != dev ]; then userdel -r "${existing}" || true; fi; \
+    getent group "${GID}" >/dev/null || groupadd --gid "${GID}" dev; \
+    useradd --uid "${UID}" --gid "${GID}" --create-home --shell /bin/bash dev; \
+    git config --system --add safe.directory /workspace
+
+# The workspace and every cache directory must exist in the image and be owned by the user: Docker
+# copies that ownership into a fresh named volume, which is otherwise root-owned and unwritable.
+RUN install -d -o "${UID}" -g "${GID}" /workspace '/workspace/target' \
+ && install -d -o "${UID}" -g "${GID}" /home/dev/.cache
+
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/kennel-entrypoint
+
+USER dev
+WORKDIR /workspace
+ENV HOME=/home/dev
+ENTRYPOINT ["/usr/local/bin/kennel-entrypoint"]
+CMD ["sleep", "infinity"]

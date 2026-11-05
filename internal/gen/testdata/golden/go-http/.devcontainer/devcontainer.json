@@ -1,0 +1,16 @@
+// kennel:generated sha256=bf1177dc666eb7d7bec50b81c95fab6b2cd02ba50742bb0d756f79520c748597
+{
+  "name": "kennel: go-http",
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.kennel/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["kennel", "prepare"]
+}

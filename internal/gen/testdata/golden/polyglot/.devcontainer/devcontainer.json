@@ -1,0 +1,16 @@
+// kennel:generated sha256=447c1b1281e77d93934403b455a9e21121eeb31a7574c3a7fda3462e4a72bdfb
+{
+  "name": "kennel: polyglot",
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.kennel/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["kennel", "prepare"]
+}

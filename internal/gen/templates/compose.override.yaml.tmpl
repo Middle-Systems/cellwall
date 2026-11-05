@@ -1,0 +1,39 @@
+# Per-session additions to compose.yaml, written by `kennel prepare`. Not committed.
+# Protected paths are mounted read-only over the writable workspace; each parent directory is
+# pinned as its own mount point so it cannot be renamed away and replaced (kennel docs: decisions/0002).
+{{- if or .Mounts .Secrets}}
+services:
+  agent:
+    volumes:
+{{- range .Mounts}}
+      - type: bind
+        source: {{.Source | q}}
+        target: {{.Target | q}}
+{{- if .ReadOnly}}
+        read_only: true
+{{- end}}
+        bind:
+          create_host_path: false
+{{- end}}
+{{- range .Secrets}}
+      - type: bind
+        source: {{.Source | q}}
+        target: {{.Target | q}}
+        read_only: true
+        bind:
+          create_host_path: false
+{{- end}}
+{{- if .HideState}}
+      # Hides the gateway's state directory (effective policy, audit log) from the agent.
+      - type: tmpfs
+        target: /workspace/{{.StateRel}}
+        # Explicit, because engines differ: the default is root-owned 0755 on Docker Engine 29.6 but
+        # world-writable on Docker Desktop 4.92 (spike S5/S10). 0555 (= 365) and a one-page size make
+        # it read-only and useless as scratch space everywhere.
+        tmpfs:
+          size: 4096
+          mode: 365
+{{- end}}
+{{- else}}
+services: {}
+{{- end}}

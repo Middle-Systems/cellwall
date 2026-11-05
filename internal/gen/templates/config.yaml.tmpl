@@ -1,0 +1,87 @@
+# kennel project configuration. Committed to the repository and read-only inside the sandbox.
+#
+# After editing: `kennel init` regenerates the container files (hand edits to them are kept and
+# reported), and `kennel prepare` (or `kennel up`) applies the policy and mounts.
+# Anything that weakens isolation lives under `unsafe:`; it is honoured only in this file, and
+# `kennel prepare` lists it every time. See the kennel docs: decisions/0003 and 0006.
+version: 1
+project: {{.Project}}
+
+# Stacks choose toolchains, cache volumes and package-registry allowlists. "auto" re-detects them
+# from marker files whenever you run `kennel init`; or pin the list explicitly:
+# [node, python, go, rust, java, dotnet, ruby, php]
+stacks: {{.StacksYAML}}
+
+agent:
+  # claude | none. "none" is bring-your-own agent: set `command` and (usually) `base_image`.
+  preset: {{.Cfg.Agent.Preset}}
+  command: {{.CommandYAML}}
+  # Exact version. kennel ships an integrity pin for {{.PinnedVersion}} only; any other version is
+  # installed without one and `kennel init` says so.
+  version: {{.Cfg.Agent.Version | q}}
+  # true also allows the agent's optional telemetry hosts through the gateway.
+  telemetry: {{.Cfg.Agent.Telemetry}}
+  # true also allows claude.ai MCP connector traffic through the gateway.
+  mcp_connectors: {{.Cfg.Agent.MCPConnectors}}
+  # Non-secret environment for the agent. Proxy, loader and kennel variables are refused.
+  # env: {NODE_ENV: development}
+  # Extra Debian packages baked into the agent image at build time.
+  # apt_packages: [postgresql-client]
+  # Replace the pinned Debian base. Must be Debian/Ubuntu based and pinned by digest.
+  # base_image: "repo:tag@sha256:..."
+
+workspace:
+  # bind: the host directory is mounted (live, but slow on macOS/Windows file sharing).
+  # volume: the agent gets its own copy in a named volume (fast); `kennel up` seeds it from your
+  # git repository and `kennel fetch` brings its commits back, gated on protected files.
+  mode: {{.Cfg.Workspace.Mode}}
+  # Regenerable directories kept on named volumes, off the slow mount: auto | none | [paths].
+  cache_volumes: {{.CacheYAML}}
+
+devcontainer:
+  # Where the generated container files live. `kennel init --merge` uses .devcontainer/kennel
+  # so an existing devcontainer setup is left untouched.
+  dir: {{.Cfg.Devcontainer.Dir}}
+
+# Dev-server ports published on 127.0.0.1 through the gateway (`kennel ports ls|add|rm`).
+# The server inside the sandbox must listen on 0.0.0.0, not localhost.
+ports: {{.PortsYAML}}
+
+hardening:
+  readonly_rootfs: {{.Cfg.Hardening.ReadonlyRootfs}}
+  # e.g. "runsc" for gVisor, if installed.
+  runtime: {{.Cfg.Hardening.Runtime | q}}
+  pids_limit: {{.Cfg.Hardening.PidsLimit}}
+  memory: {{.Cfg.Hardening.Memory | q}}
+  cpus: {{.Cfg.Hardening.CPUs}}
+
+gateway:
+  memory: {{.Cfg.Gateway.Memory | q}}
+  pids_limit: {{.Cfg.Gateway.PidsLimit}}
+  audit_max_size_mb: {{.Cfg.Gateway.AuditMaxSizeMB}}
+  audit_max_files: {{.Cfg.Gateway.AuditMaxFiles}}
+
+# ADDITIONAL read-only paths. The built-ins below are always protected and cannot be removed by
+# editing this list (use unsafe.unprotect):
+#   {{.DefaultProtected}}
+protected_paths: []
+
+# Credentials are explicit and opt-in. Only the file's location is written here, never its value.
+# The file is mounted read-only at /run/secrets/<name>; `env` exports it as that variable at start.
+# secrets:
+#   - name: github_token
+#     source_file: ~/.config/kennel/github_token
+#     env: GH_TOKEN
+
+git:
+  user_name: {{.Cfg.Git.UserName | q}}
+  user_email: {{.Cfg.Git.UserEmail | q}}
+
+# Everything below weakens the sandbox. Uncomment only if you mean it.
+# unsafe:
+#   unprotect: [".vscode/tasks.json"]   # let the agent write a built-in protected path
+#   publish_all_interfaces: false       # publish previews on every host interface, not just 127.0.0.1
+#   cap_add: [SYS_PTRACE]               # the only capability that may be added (debuggers)
+#   audit_fail_open: false              # keep allowing connections if the audit log cannot be written
+#   unpinned_base_image: false          # permit agent.base_image without a digest
+#   allow_old_engine: false             # skip the Docker Engine >= 28 requirement (ADR 0001)

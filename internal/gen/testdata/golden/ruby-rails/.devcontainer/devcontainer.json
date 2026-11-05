@@ -1,0 +1,16 @@
+// kennel:generated sha256=c84e8b6166024d4766e1c9215e82f7cf0f024dc85ced5e40b236c8b5c00a6e34
+{
+  "name": "kennel: ruby-rails",
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.kennel/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["kennel", "prepare"]
+}

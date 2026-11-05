@@ -1,0 +1,69 @@
+# kennel:generated sha256=a1d0ca2bb4beb256c2a614e6579ed371086f0da700a91d332c61305d1d12d4b0
+# Agent image for python-flask.
+# Built on the HOST network (not sandboxed). At run time the container is attached only to the
+# internal `sandbox` network, so it reaches the internet only through the gateway.
+# Every base and toolchain image is pinned by digest (they move only when you upgrade kennel and re-run `kennel init`).
+# Edit .kennel/config.yaml and re-run `kennel init`; hand edits to this file are detected and kept.
+
+ARG UID=1000
+ARG GID=1000
+
+FROM node:lts-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS tool-node
+
+FROM tool-node AS agent-claude
+WORKDIR /opt/claude
+COPY agent/claude/package.json agent/claude/package-lock.json* ./
+# Claude Code 2.1.286 is installed from an npm lockfile, so every package is checked against
+# a recorded sha512 integrity hash: `npm ci` fails if the registry serves different bytes.
+RUN npm ci --omit=dev --no-audit --no-fund
+
+FROM debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251 AS agent
+ARG UID
+ARG GID
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential \
+      ca-certificates \
+      curl \
+      git \
+      jq \
+      less \
+      make \
+      procps \
+      python3 \
+      python3-dev \
+      python3-pip \
+      python3-venv \
+      ripgrep \
+      unzip
+
+COPY --from=agent-claude /opt/claude /opt/claude
+RUN ln -s /opt/claude/node_modules/.bin/claude /usr/local/bin/claude \
+ && DISABLE_AUTOUPDATER=1 claude --version
+
+# Non-root user matching the host UID/GID so bind-mounted files keep sane ownership.
+RUN set -eux; \
+    existing="$(getent passwd "${UID}" | cut -d: -f1 || true)"; \
+    if [ -n "${existing}" ] && [ "${existing}" != dev ]; then userdel -r "${existing}" || true; fi; \
+    getent group "${GID}" >/dev/null || groupadd --gid "${GID}" dev; \
+    useradd --uid "${UID}" --gid "${GID}" --create-home --shell /bin/bash dev; \
+    git config --system --add safe.directory /workspace
+
+# The workspace and every cache directory must exist in the image and be owned by the user: Docker
+# copies that ownership into a fresh named volume, which is otherwise root-owned and unwritable.
+RUN install -d -o "${UID}" -g "${GID}" /workspace '/workspace/.mypy_cache' '/workspace/.pytest_cache' '/workspace/.ruff_cache' '/workspace/.venv' \
+ && install -d -o "${UID}" -g "${GID}" /home/dev/.cache
+
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/kennel-entrypoint
+
+USER dev
+WORKDIR /workspace
+ENV HOME=/home/dev
+ENTRYPOINT ["/usr/local/bin/kennel-entrypoint"]
+CMD ["sleep", "infinity"]

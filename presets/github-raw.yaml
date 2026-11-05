@@ -1,0 +1,7 @@
+# Preset: github-raw
+# Provenance: Public registry documentation from maintainer knowledge; NOT yet verified empirically (spike S6). Treat as a starting point and run with 'kennel logs --denied'. Multi-tenant content host: any user's files are readable. Exact host only.
+# Rules are exact hostnames on port 443. Presets never contain relaxations (enforced by tests).
+version: 1
+description: "GitHub: raw file downloads (opt-in)"
+rules:
+  - host: raw.githubusercontent.com

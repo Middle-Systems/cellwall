@@ -1,0 +1,8 @@
+# Preset: claude-telemetry
+# Provenance: Claude Code network access requirements page (code.claude.com/docs/en/network-config), read 2026-10-01. Not yet verified empirically (spike S6). The docs say these carry only optional telemetry; DISABLE_TELEMETRY / CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC turn it off at the source.
+# Rules are exact hostnames on port 443. Presets never contain relaxations (enforced by tests).
+version: 1
+description: "Claude Code: optional operational telemetry and error reports (opt-in, off by default)"
+rules:
+  - host: http-intake.logs.us5.datadoghq.com
+  - host: browser-intake-us5-datadoghq.com

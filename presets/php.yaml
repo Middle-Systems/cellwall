@@ -1,0 +1,8 @@
+# Preset: php
+# Provenance: Public registry documentation from maintainer knowledge; NOT yet verified empirically (spike S6). Composer dist archives usually come from GitHub: add the github-codeload and github presets if your dependencies need them.
+# Rules are exact hostnames on port 443. Presets never contain relaxations (enforced by tests).
+version: 1
+description: "Packagist: Composer metadata"
+rules:
+  - host: repo.packagist.org
+  - host: packagist.org

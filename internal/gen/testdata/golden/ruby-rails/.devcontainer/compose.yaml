@@ -1,0 +1,120 @@
+# kennel:generated sha256=62c22a92eeb36c8e53d82479ce3ba932aaac078293d2200192db2aef26d131a9
+# Sandbox topology for ruby-rails (kennel docs: architecture.md).
+#
+#   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
+#
+# The agent has no route out: it is attached only to the `sandbox` network, and the only thing on
+# that network is the gateway, which enforces the policy and runs in a separate container the agent
+# cannot modify. Edit .kennel/config.yaml and re-run `kennel init` to change this file.
+#
+# The per-session parts (policy, audit log, protected-path mounts, secrets) live in
+# .kennel/state/compose.override.yaml, written by `kennel prepare`. Always pass both files.
+name: kennel-ruby-rails
+
+networks:
+  sandbox:
+    # internal: no route to the internet. gateway_mode_ipv4=isolated: the host takes no address on
+    # this bridge, so the agent cannot reach host services bound to 0.0.0.0 (kennel docs: decisions/0001).
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.gateway_mode_ipv4: isolated
+  egress: {}
+
+volumes:
+  agent-home: {}
+
+services:
+  gateway:
+    image: ${KENNEL_GATEWAY_IMAGE:-kennel-gateway:local}
+    command:
+      - "--policy"
+      - "/etc/kennel/policy/policy.json"
+      - "--audit-dir"
+      - "/var/log/kennel"
+      - "--audit-max-size-mb"
+      - "50"
+      - "--audit-max-files"
+      - "5"
+      - "--forward-port"
+      - "3000"
+      - "--forward-target"
+      - "agent"
+    networks: [sandbox, egress]
+    # Previews: the gateway publishes the port and relays it to the agent over `sandbox`. The agent
+    # sits on an internal network and cannot publish ports itself. The forwarder's upstream is
+    # fixed to the agent; it is not an outbound path.
+    ports:
+      - target: 3000
+        published: "3000"
+        protocol: tcp
+        host_ip: 127.0.0.1
+    user: "${KENNEL_UID:-1000}:${KENNEL_GID:-1000}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    pids_limit: 256
+    restart: unless-stopped
+    volumes:
+      # Mount the policy DIRECTORY, never the file: an atomically replaced file would leave a
+      # single-file mount pointing at the old inode and hot reload would silently never fire.
+      - type: bind
+        source: ${KENNEL_STATE:-../.kennel/state}/policy
+        target: /etc/kennel/policy
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${KENNEL_STATE:-../.kennel/state}/audit
+        target: /var/log/kennel
+        bind:
+          create_host_path: false
+
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UID: "${KENNEL_UID:-1000}"
+        GID: "${KENNEL_GID:-1000}"
+    image: kennel-ruby-rails-agent:local
+    networks: [sandbox]
+    depends_on:
+      gateway:
+        condition: service_healthy
+    init: true
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 1024
+    mem_limit: 8g
+    cpus: ${KENNEL_CPUS:-4}
+    read_only: false
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=1g,mode=1777
+    environment:
+      ALL_PROXY: "http://gateway:3128"
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+      DISABLE_AUTOUPDATER: "1"
+      DISABLE_ERROR_REPORTING: "1"
+      DISABLE_TELEMETRY: "1"
+      ENABLE_CLAUDEAI_MCP_SERVERS: "false"
+      HTTPS_PROXY: "http://gateway:3128"
+      HTTP_PROXY: "http://gateway:3128"
+      LANG: "C.UTF-8"
+      NO_PROXY: "gateway,localhost,127.0.0.1"
+      all_proxy: "http://gateway:3128"
+      http_proxy: "http://gateway:3128"
+      https_proxy: "http://gateway:3128"
+      no_proxy: "gateway,localhost,127.0.0.1"
+    volumes:
+      - type: bind
+        source: ${KENNEL_WORKSPACE:-..}
+        target: /workspace
+        bind:
+          create_host_path: false
+      - type: volume
+        source: agent-home
+        target: /home/dev

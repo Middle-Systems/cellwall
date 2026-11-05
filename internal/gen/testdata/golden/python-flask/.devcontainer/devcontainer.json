@@ -1,0 +1,16 @@
+// kennel:generated sha256=caa375f2237a14af9f78bd98f356ac2c893cf09c6a4f883f473674135f945412
+{
+  "name": "kennel: python-flask",
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.kennel/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["kennel", "prepare"]
+}

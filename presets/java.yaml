@@ -1,0 +1,11 @@
+# Preset: java
+# Provenance: Public registry documentation from maintainer knowledge; NOT yet verified empirically (spike S6). Treat as a starting point and run with 'kennel logs --denied'.
+# Rules are exact hostnames on port 443. Presets never contain relaxations (enforced by tests).
+version: 1
+description: "Java: Maven Central and Gradle plugin/distribution hosts"
+rules:
+  - host: repo.maven.apache.org
+  - host: repo1.maven.org
+  - host: plugins.gradle.org
+  - host: services.gradle.org
+  - host: downloads.gradle.org

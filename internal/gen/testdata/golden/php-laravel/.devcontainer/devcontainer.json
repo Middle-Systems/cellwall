@@ -1,0 +1,16 @@
+// kennel:generated sha256=b03cc85c7e22371d6f65b6e289c528f07b7b413b2c74a5c3d4d387d8af9301b5
+{
+  "name": "kennel: php-laravel",
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
+  // (policy, protected-path mounts, secrets); it must exist before the container starts.
+  "dockerComposeFile": [
+    "compose.yaml",
+    "../.kennel/state/compose.override.yaml"
+  ],
+  "service": "agent",
+  "runServices": ["gateway", "agent"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": ["kennel", "prepare"]
+}

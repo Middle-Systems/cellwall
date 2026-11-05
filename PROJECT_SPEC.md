@@ -1,6 +1,6 @@
-# cellwall: Sandboxed Coding-Agent Environments (Go)
+# kennel: Sandboxed Coding-Agent Environments (Go)
 
-> **Working name.** `cellwall` is a placeholder. Before M5, check availability on GitHub, Homebrew, Scoop, and the Go module path. Do **not** use "claudew" (see Section 2) and do not put "Claude" or "Anthropic" in the product name.
+> **Name.** The product is `kennel` (working name `cellwall`; see `docs/decisions/0010-name-and-licence.md`). Do **not** use "claudew" (see Section 2) and do not put "Claude" or "Anthropic" in the product name.
 
 ## 0. How to use this document (read first, agent)
 
@@ -17,13 +17,13 @@ Working agreements:
 
 ## 1. Summary
 
-`cellwall init` in any repo generates a hardened dev-container setup in which a coding agent (Claude Code first, others configurable) runs **sandboxed with no direct network path to the internet**. All egress goes through a policy-enforcing proxy that runs in a **separate container outside the agent's trust boundary**, so the agent cannot weaken its own restrictions. `cellwall run` starts everything and drops you into the agent. Dev-server previews are forwarded to the host browser.
+`kennel init` in any repo generates a hardened dev-container setup in which a coding agent (Claude Code first, others configurable) runs **sandboxed with no direct network path to the internet**. All egress goes through a policy-enforcing proxy that runs in a **separate container outside the agent's trust boundary**, so the agent cannot weaken its own restrictions. `kennel run` starts everything and drops you into the agent. Dev-server previews are forwarded to the host browser.
 
 Everything (CLI, proxy, forwarder, generator) is **one static Go binary**, cross-compiled for Linux, macOS, and Windows. The same binary runs as the gateway inside a container.
 
 ### Goals
 
-- One-command setup: `cellwall init && cellwall run`.
+- One-command setup: `kennel init && kennel run`.
 - Egress control the agent cannot modify (enforced outside the agent container).
 - Fast: CLI startup under 50 ms for non-Docker commands, proxy adds negligible latency, a sane filesystem story on macOS and Windows.
 - Platform agnostic: Linux, macOS, Windows (Docker Desktop/WSL2); Docker first, Podman best-effort.
@@ -53,11 +53,11 @@ The author has seen similar internal tooling at an employer. This project must b
 
 Core workflows:
 
-1. **First run:** `cellwall init` (detects stack, writes config + `.devcontainer/`), `cellwall run` (builds, starts, attaches agent).
-2. **Blocked request:** the agent's `npm install` hits a non-allowlisted host and fails with a clear message. The developer runs `cellwall logs --denied`, then `cellwall allow registry.example.com --save`. No restart needed.
+1. **First run:** `kennel init` (detects stack, writes config + `.devcontainer/`), `kennel run` (builds, starts, attaches agent).
+2. **Blocked request:** the agent's `npm install` hits a non-allowlisted host and fails with a clear message. The developer runs `kennel logs --denied`, then `kennel allow registry.example.com --save`. No restart needed.
 3. **Preview:** the agent starts `vite` on 5173. The developer opens `http://localhost:5173` in the host browser. Hot reload works.
-4. **Verify:** `cellwall verify` runs the escape test suite against the live sandbox and prints pass/fail per property.
-5. **Teardown:** `cellwall down` (optionally `--volumes`).
+4. **Verify:** `kennel verify` runs the escape test suite against the live sandbox and prints pass/fail per property.
+5. **Teardown:** `kennel down` (optionally `--volumes`).
 
 ## 4. Architecture
 
@@ -65,9 +65,9 @@ Core workflows:
 
 ```
 Host
- ├─ cellwall CLI (Go)  ── generates files, drives `docker compose`, execs into containers
+ ├─ kennel CLI (Go)  ── generates files, drives `docker compose`, execs into containers
  └─ Docker/Podman engine
-     ├─ gateway container   (cellwall binary, FROM scratch/distroless, non-root)
+     ├─ gateway container   (kennel binary, FROM scratch/distroless, non-root)
      │    ├─ egress proxy (HTTP CONNECT + plain HTTP), policy engine, audit log
      │    └─ inbound TCP forwarders for previewed ports
      └─ agent container     (dev toolchain + agent CLI, non-root, no capabilities)
@@ -84,11 +84,11 @@ Host
 
 ### 4.3 Gateway (egress proxy)
 
-Implemented in Go, `internal/proxy`, started via the hidden subcommand `cellwall gateway`.
+Implemented in Go, `internal/proxy`, started via the hidden subcommand `kennel gateway`.
 
 Behavior:
 
-- **HTTPS:** handle `CONNECT host:port`. Check `host` and `port` against policy **before** resolving or dialing. Default allowed port set: `443`. Return `403` with a short plain-text body naming the denied host and how to allow it (`cellwall allow <host>`), so the agent sees an actionable error.
+- **HTTPS:** handle `CONNECT host:port`. Check `host` and `port` against policy **before** resolving or dialing. Default allowed port set: `443`. Return `403` with a short plain-text body naming the denied host and how to allow it (`kennel allow <host>`), so the agent sees an actionable error.
 - **Plain HTTP:** forward only if the `Host` matches policy; default policy for plain HTTP is deny (configurable per rule).
 - **Resolution and dialing:** the gateway resolves the destination, then **dials the resolved IP** (no second lookup, preventing DNS-rebinding between check and use). Reject if any resolved address is loopback, link-local (incl. `169.254.169.254` and other metadata endpoints), private (RFC 1918, CGNAT, ULA), multicast, or unspecified, unless a rule explicitly sets `allow_private: true` (off by default; warn loudly).
 - **IP-literal CONNECT targets:** denied by default.
@@ -113,7 +113,7 @@ This addresses the original pain: containers on macOS/Windows are slow and awkwa
 `workspace.mode`:
 
 - `bind` (default on Linux): host repo bind-mounted at `/workspace`.
-- `volume` (recommended default on macOS and Windows): the repo lives in a named volume on the engine's native filesystem. Much faster. Changes return to the host via git (agent commits to a branch; `cellwall fetch` pulls it into the host repo). Design `fetch` as a git remote over `docker exec`; keep it simple and document the tradeoff (you do not see files live in Finder/Explorer).
+- `volume` (recommended default on macOS and Windows): the repo lives in a named volume on the engine's native filesystem. Much faster. Changes return to the host via git (agent commits to a branch; `kennel fetch` pulls it into the host repo). Design `fetch` as a git remote over `docker exec`; keep it simple and document the tradeoff (you do not see files live in Finder/Explorer).
 
 For both modes, **auto-generate named volumes for heavy, regenerable directories** based on detected stack (`node_modules`, `.venv`, `target/`, `.gradle`, `.next`, `__pycache__`, Go build/module cache) so they stay off the slow mount. Also a named volume for the agent's home (`/home/dev`) holding its auth and settings, **separate from the host's** `~/.claude` by default.
 
@@ -123,8 +123,8 @@ Docker generally does not publish ports for containers attached only to an `inte
 
 - Config lists `ports: [3000, 5173]`. The compose file publishes `127.0.0.1:<port>:<port>` on the **gateway** (loopback only, never `0.0.0.0` unless explicitly configured).
 - The gateway runs a TCP forwarder: `gateway:<port>` to `agent:<port>` over `sandbox`. The forwarder's upstream is fixed to the agent. It must not be usable as an outbound path.
-- Adding a port later: `cellwall ports add 8080` regenerates compose and recreates only the (stateless) gateway.
-- The dev server inside the agent must bind `0.0.0.0`. `cellwall doctor` and `cellwall ports ls` probe for listeners (via `docker exec`, `ss`/`/proc/net/tcp`) and warn when something is listening on loopback only, with the framework-specific fix (`vite --host`, `next dev -H 0.0.0.0`, `flask run --host=0.0.0.0`, etc.).
+- Adding a port later: `kennel ports add 8080` regenerates compose and recreates only the (stateless) gateway.
+- The dev server inside the agent must bind `0.0.0.0`. `kennel doctor` and `kennel ports ls` probe for listeners (via `docker exec`, `ss`/`/proc/net/tcp`) and warn when something is listening on loopback only, with the framework-specific fix (`vite --host`, `next dev -H 0.0.0.0`, `flask run --host=0.0.0.0`, etc.).
 
 ### 4.7 Credentials and secrets
 
@@ -137,12 +137,12 @@ Docker generally does not publish ports for containers attached only to an `inte
 
 A compromised agent has write access to the workspace, and the *host* later executes things from it. Mount these **read-only inside the agent container** (nested read-only bind over the writable workspace), by default:
 
-- `.devcontainer/`, `.cellwall/`
+- `.devcontainer/`, `.kennel/`
 - `.git/hooks/` (and warn about `.git/config` since `core.fsmonitor`, `core.sshCommand`, aliases, and hooks run on the host)
 - `.vscode/tasks.json`, `.vscode/settings.json`, `.idea/` run configurations
 - Agent config that auto-executes (`.claude/settings*.json`, `.mcp.json`, and equivalents for other agents)
 
-This list is configurable via `protected_paths:`. Document the tradeoff: the agent cannot edit these, so humans change them on the host. In `volume` mode, `cellwall fetch` must show a diff of changes to any protected path and require explicit confirmation before they reach the host working tree.
+This list is configurable via `protected_paths:`. Document the tradeoff: the agent cannot edit these, so humans change them on the host. In `volume` mode, `kennel fetch` must show a diff of changes to any protected path and require explicit confirmation before they reach the host working tree.
 
 ## 5. Threat model
 
@@ -157,21 +157,21 @@ This list is configurable via `protected_paths:`. Document the tradeoff: the age
 - Anything the user deliberately mounts or allows.
 - A malicious or compromised host.
 
-Ship this section (tightened) in the README. Ship `cellwall verify` so claims are checkable.
+Ship this section (tightened) in the README. Ship `kennel verify` so claims are checkable.
 
 ## 6. CLI specification
 
-Binary: `cellwall`. Use `cobra` (justified: completions, subcommands). Global flags: `--project-dir`, `--verbose`, `--json`.
+Binary: `kennel`. Use `cobra` (justified: completions, subcommands). Global flags: `--project-dir`, `--verbose`, `--json`.
 
 | Command | Behavior |
 |---|---|
-| `init [--stack auto\|node,python,go,rust,java,dotnet,ruby,php] [--workspace bind\|volume] [--agent claude] [--force]` | Detect stack; write `.cellwall/config.yaml`, `.cellwall/policy.yaml`, `.devcontainer/devcontainer.json`, generated Dockerfile and compose. **Non-destructive:** if `.devcontainer/` exists, refuse unless `--force`, or offer `--merge` that only adds files under a `cellwall/` subfolder and prints manual steps. Idempotent: re-running with identical inputs produces no diff. |
+| `init [--stack auto\|node,python,go,rust,java,dotnet,ruby,php] [--workspace bind\|volume] [--agent claude] [--force]` | Detect stack; write `.kennel/config.yaml`, `.kennel/policy.yaml`, `.devcontainer/devcontainer.json`, generated Dockerfile and compose. **Non-destructive:** if `.devcontainer/` exists, refuse unless `--force`, or offer `--merge` that only adds files under a `kennel/` subfolder and prints manual steps. Idempotent: re-running with identical inputs produces no diff. |
 | `up [-d] [--rebuild]` | Build if needed, start gateway then agent, wait for health, print preview URLs. |
 | `run [-- agent args]` | `up` then exec the agent command interactively (TTY passthrough, signal forwarding, correct exit code, Windows ConPTY handled via the engine CLI). |
 | `shell` | Interactive shell in the agent container. |
 | `down [--volumes]` | Stop and remove containers; `--volumes` also removes named volumes (confirm). |
 | `status` | Containers, network mode, active policy hash, previewed ports, workspace mode. |
-| `allow <host...> [--port N] [--save]` / `deny <host...>` | Edit policy. Default scope is the current session (state dir); `--save` writes to the committed `.cellwall/policy.yaml`. Hot reloads. Validates against the wildcard linter. |
+| `allow <host...> [--port N] [--save]` / `deny <host...>` | Edit policy. Default scope is the current session (state dir); `--save` writes to the committed `.kennel/policy.yaml`. Hot reloads. Validates against the wildcard linter. |
 | `logs [-f] [--denied] [--since 1h] [--json]` | Read the audit log. `--denied` groups by host with counts and suggested `allow` commands. |
 | `ports ls\|add\|rm` | Manage previews; warn on loopback-only listeners. |
 | `verify` | Run the escape suite (Section 10) live. Non-zero exit on any failure. |
@@ -181,13 +181,13 @@ Binary: `cellwall`. Use `cobra` (justified: completions, subcommands). Global fl
 | `gateway` (hidden) | Runs inside the gateway container. |
 | `version`, `completion` | Standard. |
 
-Control-plane transport: the host CLI talks to the gateway via `docker exec <gateway> cellwall ctl ...` (portable across OSes, no sockets or open ports). The agent has no path to this.
+Control-plane transport: the host CLI talks to the gateway via `docker exec <gateway> kennel ctl ...` (portable across OSes, no sockets or open ports). The agent has no path to this.
 
 Error UX rule: every failure message states what happened, why, and the next command to run.
 
 ## 7. Configuration
 
-Two files in `.cellwall/` (committed; protected from the agent):
+Two files in `.kennel/` (committed; protected from the agent):
 
 `config.yaml`
 
@@ -208,10 +208,10 @@ hardening:
   pids_limit: 1024
   memory: "8g"
   cpus: 4
-protected_paths: [".devcontainer", ".cellwall", ".git/hooks", ".vscode/tasks.json", ".claude", ".mcp.json"]
+protected_paths: [".devcontainer", ".kennel", ".git/hooks", ".vscode/tasks.json", ".claude", ".mcp.json"]
 secrets:
   - name: github_token
-    source_file: ~/.config/cellwall/github_token   # host path, mounted read-only
+    source_file: ~/.config/kennel/github_token   # host path, mounted read-only
     env: GH_TOKEN
 git:
   user_name: ""
@@ -235,7 +235,7 @@ limits:
   idle_timeout: 60s
 ```
 
-Rules: schema-validate with clear line/column errors; unknown keys are errors; layered merge order is embedded defaults, then user-global (`~/.config/cellwall/`), then project, then session overrides. Effective policy is written by the host CLI to the state dir and mounted read-only into the gateway only.
+Rules: schema-validate with clear line/column errors; unknown keys are errors; layered merge order is embedded defaults, then user-global (`~/.config/kennel/`), then project, then session overrides. Effective policy is written by the host CLI to the state dir and mounted read-only into the gateway only.
 
 ## 8. Stack detection and presets
 
@@ -249,7 +249,7 @@ Presets are embedded YAML, each reviewed and **pinned to specific hostnames** wh
 - `CGO_ENABLED=0`, static binaries, `-trimpath`, version injected via `-ldflags`.
 - Layout:
   ```
-  cmd/cellwall/main.go
+  cmd/kennel/main.go
   internal/cli        (cobra wiring only; no business logic)
   internal/config     (schema, load, merge, validate)
   internal/detect     (stack detection)
@@ -275,7 +275,7 @@ Presets are embedded YAML, each reviewed and **pinned to specific hostnames** wh
 Policy matching (exact, wildcard, port, case, trailing dots, IDN/punycode), SSRF guard (every blocked range, IPv6, IPv4-mapped IPv6), SNI/ClientHello parsing (fragmented records, missing SNI, ECH, garbage), config validation, stack detection, generator golden files, protected-path set.
 
 ### Integration/e2e (CI on Linux with Docker)
-Spin up the real topology and run the **escape suite**, shared between CI and `cellwall verify`. Each is a named, independently reported check run via `docker exec` in the agent container:
+Spin up the real topology and run the **escape suite**, shared between CI and `kennel verify`. Each is a named, independently reported check run via `docker exec` in the agent container:
 
 1. Direct TCP to a public IP (e.g., `1.1.1.1:443`) fails.
 2. External DNS resolution does not leak (no query reaches an external resolver; verify with a controlled resolver in CI).
@@ -296,7 +296,7 @@ Also benchmark: proxy overhead (p50/p99 CONNECT setup latency) and throughput; f
 
 - GoReleaser: Linux/macOS/Windows on amd64/arm64; checksums; SBOM (CycloneDX or SPDX) per artifact; **cosign keyless signatures**; SLSA provenance via GitHub Actions; reproducible builds (`-trimpath`, fixed timestamps).
 - Distribution: GitHub Releases, Homebrew tap, Scoop bucket, `go install`, install script that verifies checksums/signatures (never `curl | sh` without verification).
-- **Gateway image:** multi-arch image on a public registry, `FROM scratch` or distroless, non-root, read-only rootfs, built in CI, signed, referenced from generated compose **by digest**. The CLI pins the matching digest per release. (A macOS or Windows host runs a Linux VM, so the gateway image must be Linux regardless of host OS; do not try to run the host binary in the container.) Provide an offline path: embed the linux binaries and build the gateway image locally with `cellwall up --offline-gateway`.
+- **Gateway image:** multi-arch image on a public registry, `FROM scratch` or distroless, non-root, read-only rootfs, built in CI, signed, referenced from generated compose **by digest**. The CLI pins the matching digest per release. (A macOS or Windows host runs a Linux VM, so the gateway image must be Linux regardless of host OS; do not try to run the host binary in the container.) Provide an offline path: embed the linux binaries and build the gateway image locally with `kennel up --offline-gateway`.
 - Generated Dockerfiles pin base image digests and verify checksums of anything downloaded during build.
 - Minimal dependency tree; `go mod verify` and `govulncheck` gate merges; Dependabot/Renovate with review.
 - Security policy (`SECURITY.md`), coordinated disclosure contact, and a changelog.
@@ -309,7 +309,7 @@ Also benchmark: proxy overhead (p50/p99 CONNECT setup latency) and throughput; f
 - Done when: CI green on three OSes; spikes documented with go/no-go for the topology.
 
 **M1: Gateway and policy**
-- `internal/policy`, `internal/proxy`, `cellwall gateway`; audit log; SSRF guard; SNI peek; limits; hot reload.
+- `internal/policy`, `internal/proxy`, `kennel gateway`; audit log; SSRF guard; SNI peek; limits; hot reload.
 - Done when: unit + fuzz tests pass; proxy runs standalone in a container; checks 3-7 and 12 pass against it.
 
 **M2: Generator and `init`**
@@ -322,14 +322,14 @@ Also benchmark: proxy overhead (p50/p99 CONNECT setup latency) and throughput; f
 
 **M4: Hardening, previews, verify**
 - Internal-network topology finalized per spikes, protected paths, forwarders, `ports`, `verify`, `policy lint`.
-- Done when: the full escape suite (Section 10) passes in CI and via `cellwall verify`; previews work with hot reload on a sample Vite and a sample Flask app.
+- Done when: the full escape suite (Section 10) passes in CI and via `kennel verify`; previews work with hot reload on a sample Vite and a sample Flask app.
 
 **M5: Cross-platform and release**
 - macOS and Windows (Docker Desktop/WSL2) validation, `volume` workspace mode plus `fetch`, path translation, GoReleaser, signing, SBOM, Homebrew/Scoop, docs site/README, `SECURITY.md`.
 - Done when: manual test matrix recorded for macOS (arm64), Windows 11 (WSL2), Ubuntu; signed release artifacts verifiable by a documented command.
 
 **M6: Stretch (separate ADRs before starting)**
-- `cellwall watch` TUI: live blocked-request prompts to approve once/session/forever.
+- `kennel watch` TUI: live blocked-request prompts to approve once/session/forever.
 - SSH-over-CONNECT (`ProxyCommand`) for allowlisted Git hosts on port 22.
 - Per-task git worktrees with one sandbox per task for parallel agents.
 - Optional stronger runtimes (gVisor `runsc`, Kata); microVM backends.
@@ -351,8 +351,8 @@ Also benchmark: proxy overhead (p50/p99 CONNECT setup latency) and throughput; f
 
 ## 14. Open questions (agent: raise at milestone boundaries, do not block)
 
-- Final project name and org/module path.
-- License (suggest Apache-2.0 or MIT; author to decide).
+- ~~Final project name and org/module path.~~ Kennel, `github.com/middle-systems/kennel` (ADR 0010).
+- ~~License.~~ MIT (ADR 0010).
 - Default `workspace.mode` per OS once S8 data exists.
 - Whether `fetch` should exist in v1 or whether volume mode ships behind a flag.
 - Telemetry: default is **none**. Any future opt-in telemetry needs an ADR.
@@ -366,7 +366,7 @@ Also benchmark: proxy overhead (p50/p99 CONNECT setup latency) and throughput; f
 ## Appendix A: Illustrative generated compose (shape, not final)
 
 ```yaml
-name: cw-${PROJECT_ID}
+name: kennel-${PROJECT_ID}
 networks:
   sandbox:
     internal: true        # agent <-> gateway only (verify S1)
@@ -376,14 +376,14 @@ volumes:
   node-modules: {}
 services:
   gateway:
-    image: ghcr.io/OWNER/cellwall-gateway@sha256:REPLACE_ME
-    command: ["cellwall", "gateway", "--policy", "/etc/cellwall/policy.yaml"]
+    image: ghcr.io/OWNER/kennel-gateway@sha256:REPLACE_ME
+    command: ["kennel", "gateway", "--policy", "/etc/kennel/policy.yaml"]
     networks: [sandbox, egress]
     ports:
       - "127.0.0.1:5173:5173"       # one per previewed port
     volumes:
-      - ${STATE_DIR}/policy.effective.yaml:/etc/cellwall/policy.yaml:ro
-      - ${STATE_DIR}/audit:/var/log/cellwall
+      - ${STATE_DIR}/policy.effective.yaml:/etc/kennel/policy.yaml:ro
+      - ${STATE_DIR}/audit:/var/log/kennel
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
@@ -403,7 +403,7 @@ services:
     volumes:
       - ${WORKSPACE}:/workspace
       - ${WORKSPACE}/.devcontainer:/workspace/.devcontainer:ro
-      - ${WORKSPACE}/.cellwall:/workspace/.cellwall:ro
+      - ${WORKSPACE}/.kennel:/workspace/.kennel:ro
       - ${WORKSPACE}/.git/hooks:/workspace/.git/hooks:ro
       - agent-home:/home/dev
       - node-modules:/workspace/node_modules
