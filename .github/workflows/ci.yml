@@ -146,6 +146,10 @@ jobs:
   # .goreleaser.yaml or a failing cross-build before a tag does.
   release-snapshot:
     runs-on: ubuntu-latest
+    env:
+      # goreleaser itself requires a newer Go than go.mod's minimum; let the toolchain
+      # auto-switch instead of failing (actions/setup-go v6+ defaults GOTOOLCHAIN to local).
+      GOTOOLCHAIN: auto
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
