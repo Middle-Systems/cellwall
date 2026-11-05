@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/middle-systems/cellwall/internal/engine"
+	"github.com/middle-systems/kennel/internal/engine"
 )
 
 // fakeRunner maps "name arg arg" to canned output or an error.

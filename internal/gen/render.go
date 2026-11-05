@@ -11,8 +11,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/pins"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/pins"
 )
 
 //go:embed templates/*
@@ -76,13 +76,13 @@ func (d *Data) StateRel() string { return StateDirRel }
 
 // StateEnv is the state directory as a compose expression with a relative default.
 func (d *Data) StateEnv() string {
-	return "${CELLWALL_STATE:-" + d.Layout.ToRoot + "/" + StateDirRel + "}"
+	return "${KENNEL_STATE:-" + d.Layout.ToRoot + "/" + StateDirRel + "}"
 }
 
 // WorkspaceEnv is the workspace directory as a compose expression with a relative default.
-func (d *Data) WorkspaceEnv() string { return "${CELLWALL_WORKSPACE:-" + d.Layout.ToRoot + "}" }
+func (d *Data) WorkspaceEnv() string { return "${KENNEL_WORKSPACE:-" + d.Layout.ToRoot + "}" }
 
-// PinnedVersion is the agent version cellwall holds an integrity lockfile for.
+// PinnedVersion is the agent version kennel holds an integrity lockfile for.
 func (d *Data) PinnedVersion() string { return pins.ClaudeCodeVersion }
 
 func flow(items []string) string {
@@ -163,9 +163,9 @@ func Committed(in Inputs, seedPresets []string) ([]File, error) {
 		mode               fs.FileMode
 		dir                string
 	}{
-		{"config.yaml", "config.yaml.tmpl", "", Seed, 0o644, ".cellwall"},
-		{"policy.yaml", "policy.yaml.tmpl", "", Seed, 0o644, ".cellwall"},
-		{".gitignore", "cellwall.gitignore.tmpl", "#", Generated, 0o644, ".cellwall"},
+		{"config.yaml", "config.yaml.tmpl", "", Seed, 0o644, ".kennel"},
+		{"policy.yaml", "policy.yaml.tmpl", "", Seed, 0o644, ".kennel"},
+		{".gitignore", "kennel.gitignore.tmpl", "#", Generated, 0o644, ".kennel"},
 		{"Dockerfile", "Dockerfile.tmpl", "#", Generated, 0o644, dir},
 		{"compose.yaml", "compose.yaml.tmpl", "#", Generated, 0o644, dir},
 		{"devcontainer.json", "devcontainer.json.tmpl", "//", Generated, 0o644, dir},
@@ -188,7 +188,7 @@ func Committed(in Inputs, seedPresets []string) ([]File, error) {
 			add(dir+"/agent/claude/package.json", Verbatim, 0o644, "", string(pkg))
 			add(dir+"/agent/claude/package-lock.json", Verbatim, 0o644, "", string(lock))
 		} else {
-			pkg := fmt.Sprintf("{\n  \"name\": \"cellwall-agent-claude\",\n  \"version\": \"0.0.0\",\n  \"private\": true,\n  \"dependencies\": {\n    \"@anthropic-ai/claude-code\": %q\n  }\n}\n", d.ClaudeVersion)
+			pkg := fmt.Sprintf("{\n  \"name\": \"kennel-agent-claude\",\n  \"version\": \"0.0.0\",\n  \"private\": true,\n  \"dependencies\": {\n    \"@anthropic-ai/claude-code\": %q\n  }\n}\n", d.ClaudeVersion)
 			add(dir+"/agent/claude/package.json", Verbatim, 0o644, "", pkg)
 		}
 	}

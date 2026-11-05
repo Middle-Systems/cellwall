@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/proxy/proxytest"
+	"github.com/middle-systems/kennel/internal/proxy/proxytest"
 )
 
 func helloErrCode(t *testing.T, err error) string {

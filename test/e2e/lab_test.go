@@ -2,7 +2,7 @@
 
 // Package e2e runs the gateway in a real container topology and attacks it from the agent side.
 // These are the first scenarios of the escape suite (spec section 10); M4 moves them into
-// `cellwall verify` so the same checks run live against a user's sandbox.
+// `kennel verify` so the same checks run live against a user's sandbox.
 package e2e
 
 import (
@@ -41,8 +41,8 @@ type lab struct {
 func requireDocker(t *testing.T) {
 	t.Helper()
 	if err := exec.Command("docker", "info").Run(); err != nil {
-		if os.Getenv("CELLWALL_E2E_REQUIRE") != "" {
-			t.Fatalf("docker is required (CELLWALL_E2E_REQUIRE is set): %v", err)
+		if os.Getenv("KENNEL_E2E_REQUIRE") != "" {
+			t.Fatalf("docker is required (KENNEL_E2E_REQUIRE is set): %v", err)
 		}
 		t.Skip("docker not available")
 	}
@@ -130,11 +130,11 @@ func newLab(t *testing.T) *lab {
 	l.setPolicy(initialPolicy)
 
 	// Gateway image from the real static binary.
-	bin := l.buildLinux("./cmd/cellwall", "cellwall")
+	bin := l.buildLinux("./cmd/kennel", "kennel")
 	dnsd := l.buildLinux("./test/e2e/fixtures/dnsd", "dnsd")
 	ctxDir := filepath.Join(l.tmp, "ctx")
 	_ = os.MkdirAll(ctxDir, 0o755)
-	copyFile(t, bin, filepath.Join(ctxDir, "cellwall"), 0o755)
+	copyFile(t, bin, filepath.Join(ctxDir, "kennel"), 0o755)
 	copyFile(t, filepath.Join(l.root, "internal/gatewayimage/Dockerfile"), filepath.Join(ctxDir, "Dockerfile"), 0o644)
 	l.docker("build", "-q", "-t", l.image, ctxDir)
 
@@ -151,8 +151,8 @@ func newLab(t *testing.T) *lab {
 
 	l.docker("run", "-d", "--name", l.gateway, "--network", l.egress, "--network-alias", "gateway", "--dns", dnsIP,
 		"--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true", "--user", "65532:65532",
-		"-v", l.policyDir+":/etc/cellwall/policy:ro", "-v", l.auditDir+":/var/log/cellwall",
-		l.image, "--policy", "/etc/cellwall/policy/policy.json", "--audit-dir", "/var/log/cellwall",
+		"-v", l.policyDir+":/etc/kennel/policy:ro", "-v", l.auditDir+":/var/log/kennel",
+		l.image, "--policy", "/etc/kennel/policy/policy.json", "--audit-dir", "/var/log/kennel",
 		"--reload-interval", "200ms", "--log-format", "text")
 	l.docker("network", "connect", "--alias", "gateway", l.sandbox, l.gateway)
 	l.waitHealthy()
@@ -252,7 +252,7 @@ func parseReply(t *testing.T, raw []byte) reply {
 	}
 	var rest bytes.Buffer
 	_, _ = rest.ReadFrom(br)
-	r := reply{Status: resp.StatusCode, Reason: resp.Header.Get("X-Cellwall-Reason"), Rest: rest.Bytes()}
+	r := reply{Status: resp.StatusCode, Reason: resp.Header.Get("X-Kennel-Reason"), Rest: rest.Bytes()}
 	if resp.StatusCode != 200 {
 		r.Body = rest.String()
 		r.Rest = nil

@@ -6,7 +6,7 @@ source "$(dirname "$0")/lib.sh"
 WS="$(mktemp -d)"; defer "rm -rf $WS"
 reset_fixture() {
   rm -rf "$WS"/.[!.]* "$WS"/* 2>/dev/null
-  mkdir -p "$WS/.git/hooks" "$WS/.devcontainer" "$WS/.cellwall" "$WS/src"
+  mkdir -p "$WS/.git/hooks" "$WS/.devcontainer" "$WS/.kennel" "$WS/src"
   echo '#!/bin/sh' >"$WS/.git/hooks/pre-commit"; echo ref >"$WS/.git/HEAD"
   echo '{}' >"$WS/.mcp.json"; echo ok >"$WS/src/a.txt"
   chmod -R a+rwX "$WS"
@@ -22,7 +22,7 @@ docker run -d --name "$C" --user 1000:1000 \
   "$@" \
   --mount type=bind,src="$WS/.git/hooks",dst=/workspace/.git/hooks,readonly \
   --mount type=bind,src="$WS/.devcontainer",dst=/workspace/.devcontainer,readonly \
-  --mount type=bind,src="$WS/.cellwall",dst=/workspace/.cellwall,readonly \
+  --mount type=bind,src="$WS/.kennel",dst=/workspace/.kennel,readonly \
   --mount type=bind,src="$WS/.mcp.json",dst=/workspace/.mcp.json,readonly \
   "$IMAGE" sleep 300 >/dev/null && defer "docker rm -f $C"
 x() { docker exec "$C" sh -c "$1"; }
@@ -33,7 +33,7 @@ expect_fail "ro: cannot create file in .git/hooks"                  x 'echo x >/
 expect_fail "ro: cannot modify existing hook"                       x 'echo x >>/workspace/.git/hooks/pre-commit'
 expect_fail "ro: cannot delete existing hook"                       x 'rm /workspace/.git/hooks/pre-commit'
 expect_fail "ro: cannot create file in .devcontainer"               x 'echo x >/workspace/.devcontainer/devcontainer.json'
-expect_fail "ro: cannot create file in .cellwall"                   x 'echo x >/workspace/.cellwall/policy.yaml'
+expect_fail "ro: cannot create file in .kennel"                   x 'echo x >/workspace/.kennel/policy.yaml'
 expect_fail "ro: cannot modify file-level mount .mcp.json"          x 'echo x >/workspace/.mcp.json'
 expect_fail "ro: cannot rm .mcp.json"                               x 'rm -f /workspace/.mcp.json'
 expect_fail "evasion: cannot rename .git/hooks away (mountpoint busy)" x 'mv /workspace/.git/hooks /workspace/.git/hooks.old'

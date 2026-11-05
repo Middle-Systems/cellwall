@@ -19,9 +19,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/proxy/proxytest"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/proxy/proxytest"
 )
 
 // memAudit is an in-memory Auditor.
@@ -323,10 +323,10 @@ func TestDeniedHostGetsActionableMessage(t *testing.T) {
 	e := newEnv(t, basePolicy)
 	_, resp, _ := e.connect("evil.example.org:443")
 	b := body(t, resp)
-	if resp.StatusCode != 403 || resp.Header.Get("X-Cellwall-Reason") != policy.ReasonDefaultDeny {
-		t.Fatalf("status %d reason %q", resp.StatusCode, resp.Header.Get("X-Cellwall-Reason"))
+	if resp.StatusCode != 403 || resp.Header.Get("X-Kennel-Reason") != policy.ReasonDefaultDeny {
+		t.Fatalf("status %d reason %q", resp.StatusCode, resp.Header.Get("X-Kennel-Reason"))
 	}
-	for _, want := range []string{"evil.example.org:443", "not in the allowlist", "cellwall allow evil.example.org", "--save"} {
+	for _, want := range []string{"evil.example.org:443", "not in the allowlist", "kennel allow evil.example.org", "--save"} {
 		if !strings.Contains(b, want) {
 			t.Errorf("message missing %q:\n%s", want, b)
 		}
@@ -372,8 +372,8 @@ func TestIPLiteralTargetsDenied(t *testing.T) {
 	e := newEnv(t, basePolicy)
 	for _, target := range []string{"93.184.216.34:443", "[2606:2800:220:1::1]:443", "127.0.0.1:443", "2130706433:443", "0x7f.1:443", "10.0.0.1:443", "[::ffff:10.0.0.1]:443"} {
 		_, resp, _ := e.connect(target)
-		if resp.StatusCode != 403 || resp.Header.Get("X-Cellwall-Reason") != ReasonIPLiteral {
-			t.Errorf("%s: status %d reason %q", target, resp.StatusCode, resp.Header.Get("X-Cellwall-Reason"))
+		if resp.StatusCode != 403 || resp.Header.Get("X-Kennel-Reason") != ReasonIPLiteral {
+			t.Errorf("%s: status %d reason %q", target, resp.StatusCode, resp.Header.Get("X-Kennel-Reason"))
 		}
 	}
 	if e.dials.Load() != 0 {
@@ -405,8 +405,8 @@ func TestBlockedResolutionsDenied(t *testing.T) {
 		e.resolve(c.name, c.addrs...)
 		_, resp, _ := e.connect(c.name + ":443")
 		b := body(t, resp)
-		if resp.StatusCode != 403 || resp.Header.Get("X-Cellwall-Reason") != ReasonBlockedAddress || !strings.Contains(b, c.want) {
-			t.Errorf("%v: status %d reason %q body %q", c.addrs, resp.StatusCode, resp.Header.Get("X-Cellwall-Reason"), b)
+		if resp.StatusCode != 403 || resp.Header.Get("X-Kennel-Reason") != ReasonBlockedAddress || !strings.Contains(b, c.want) {
+			t.Errorf("%v: status %d reason %q body %q", c.addrs, resp.StatusCode, resp.Header.Get("X-Kennel-Reason"), b)
 		}
 	}
 	if e.dials.Load() != 0 {
@@ -624,7 +624,7 @@ func TestAuditFailureFailsClosed(t *testing.T) {
 	e := newEnv(t, basePolicy)
 	e.audit.fail.Store(true)
 	_, resp, _ := e.connect("registry.example.com:443")
-	if resp.StatusCode != 503 || resp.Header.Get("X-Cellwall-Reason") != ReasonAuditUnavailable {
+	if resp.StatusCode != 503 || resp.Header.Get("X-Kennel-Reason") != ReasonAuditUnavailable {
 		t.Fatalf("an allow that cannot be audited must be refused: %d", resp.StatusCode)
 	}
 	if e.dials.Load() != 0 {
@@ -660,7 +660,7 @@ func TestMaxConnsAndRateLimit(t *testing.T) {
 		open = append(open, c)
 	}
 	_, resp, _ := e.connect("registry.example.com:443")
-	if resp.StatusCode != 503 || resp.Header.Get("X-Cellwall-Reason") != ReasonAtCapacity {
+	if resp.StatusCode != 503 || resp.Header.Get("X-Kennel-Reason") != ReasonAtCapacity {
 		t.Errorf("third connection: %d", resp.StatusCode)
 	}
 	for _, c := range open {
@@ -758,7 +758,7 @@ func TestOriginFormRequestIsNotAProxyRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 400 || resp.Header.Get("X-Cellwall-Reason") != ReasonNotProxy {
+	if resp.StatusCode != 400 || resp.Header.Get("X-Kennel-Reason") != ReasonNotProxy {
 		t.Errorf("%d", resp.StatusCode)
 	}
 }
@@ -780,8 +780,8 @@ func TestPlainHTTPDeniedByDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 403 || resp.Header.Get("X-Cellwall-Reason") != policy.ReasonHTTPNotAllow {
-		t.Fatalf("%d %q", resp.StatusCode, resp.Header.Get("X-Cellwall-Reason"))
+	if resp.StatusCode != 403 || resp.Header.Get("X-Kennel-Reason") != policy.ReasonHTTPNotAllow {
+		t.Fatalf("%d %q", resp.StatusCode, resp.Header.Get("X-Kennel-Reason"))
 	}
 	if e.dials.Load() != 0 {
 		t.Error("denied plain HTTP must not dial")

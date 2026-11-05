@@ -15,11 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/compose"
-	"github.com/middle-systems/cellwall/internal/engine"
-	"github.com/middle-systems/cellwall/internal/gatewayimage"
-	"github.com/middle-systems/cellwall/internal/prepare"
-	"github.com/middle-systems/cellwall/internal/volume"
+	"github.com/middle-systems/kennel/internal/compose"
+	"github.com/middle-systems/kennel/internal/engine"
+	"github.com/middle-systems/kennel/internal/gatewayimage"
+	"github.com/middle-systems/kennel/internal/prepare"
+	"github.com/middle-systems/kennel/internal/volume"
 )
 
 // Env carries the host dependencies, all replaceable in tests.
@@ -118,9 +118,9 @@ func Brief(err error) string {
 func CheckEngine(ctx context.Context, r engine.Runner) error {
 	if _, err := r.Run(ctx, "docker", "info", "--format", "{{.ServerVersion}}"); err != nil {
 		if errors.Is(err, engine.ErrNotFound) {
-			return errors.New("docker was not found on PATH\n  next: install Docker (or a compatible engine), then run `cellwall doctor`")
+			return errors.New("docker was not found on PATH\n  next: install Docker (or a compatible engine), then run `kennel doctor`")
 		}
-		return fmt.Errorf("the container engine is not reachable: %s\n  next: start Docker, then run `cellwall doctor`", Brief(err))
+		return fmt.Errorf("the container engine is not reachable: %s\n  next: start Docker, then run `kennel doctor`", Brief(err))
 	}
 	return nil
 }
@@ -172,7 +172,7 @@ func Up(ctx context.Context, e Env, root string, o UpOptions) (*UpResult, error)
 	case gatewayimage.Built:
 		_, _ = fmt.Fprintf(e.logw(), "built the gateway image %s from this binary\n", res.GatewayImage)
 	case gatewayimage.Rebuilt:
-		_, _ = fmt.Fprintf(e.logw(), "rebuilt the gateway image %s (cellwall was updated)\n", res.GatewayImage)
+		_, _ = fmt.Fprintf(e.logw(), "rebuilt the gateway image %s (kennel was updated)\n", res.GatewayImage)
 	}
 
 	p, err := compose.Open(root, e.GlobalDir) // re-open: prepare just wrote the override and env file
@@ -194,7 +194,7 @@ func Up(ctx context.Context, e Env, root string, o UpOptions) (*UpResult, error)
 	}
 	if code != 0 {
 		dw.Flush()
-		return nil, fmt.Errorf("building the agent image failed (docker compose exited %d)\n  next: read the build output above; image builds use the host network, so check it can reach the package mirrors, then re-run `cellwall up`", code)
+		return nil, fmt.Errorf("building the agent image failed (docker compose exited %d)\n  next: read the build output above; image builds use the host network, so check it can reach the package mirrors, then re-run `kennel up`", code)
 	}
 
 	timeout := o.Timeout
@@ -207,7 +207,7 @@ func Up(ctx context.Context, e Env, root string, o UpOptions) (*UpResult, error)
 		return nil, err
 	}
 	if code != 0 {
-		return nil, fmt.Errorf("the sandbox did not start (docker compose exited %d)%s\n  next: fix the cause above and re-run `cellwall up`; `cellwall doctor` checks the host", code, e.gatewayLogTail(ctx, p))
+		return nil, fmt.Errorf("the sandbox did not start (docker compose exited %d)%s\n  next: fix the cause above and re-run `kennel up`; `kennel doctor` checks the host", code, e.gatewayLogTail(ctx, p))
 	}
 	out := &UpResult{Prepare: res, GatewayImage: outcome, Project: p}
 	if p.Cfg.Workspace.Mode == "volume" {
@@ -252,10 +252,10 @@ func Exec(ctx context.Context, e Env, root string, argv []string) (int, error) {
 	}
 	up, err := Running(ctx, e, p, compose.AgentService)
 	if err != nil {
-		return 0, fmt.Errorf("could not query the sandbox: %s\n  next: run `cellwall doctor`", Brief(err))
+		return 0, fmt.Errorf("could not query the sandbox: %s\n  next: run `kennel doctor`", Brief(err))
 	}
 	if !up {
-		return 0, errors.New("the agent container is not running\n  next: run `cellwall up` (or `cellwall run`, which starts it)")
+		return 0, errors.New("the agent container is not running\n  next: run `kennel up` (or `kennel run`, which starts it)")
 	}
 	return p.Exec(ctx, e.Streams, compose.AgentService, e.TTY, append([]string{compose.EntrypointPath}, argv...)...)
 }
@@ -279,7 +279,7 @@ func Down(ctx context.Context, e Env, root string, o DownOptions) error {
 		return err
 	}
 	if code != 0 {
-		return fmt.Errorf("docker compose down exited %d\n  next: run `cellwall doctor`, then retry `cellwall down`", code)
+		return fmt.Errorf("docker compose down exited %d\n  next: run `kennel doctor`, then retry `kennel down`", code)
 	}
 	return nil
 }
@@ -299,7 +299,7 @@ type gatewayStatus struct {
 func fetchGatewayStatus(ctx context.Context, e Env, p *compose.Project) (*gatewayStatus, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	out, err := p.Output(ctx, e.Runner, "exec", "-T", compose.GatewayService, "/cellwall", "gateway", "status")
+	out, err := p.Output(ctx, e.Runner, "exec", "-T", compose.GatewayService, "/kennel", "gateway", "status")
 	if err != nil {
 		return nil, err
 	}

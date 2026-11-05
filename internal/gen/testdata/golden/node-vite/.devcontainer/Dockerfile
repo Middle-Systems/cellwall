@@ -1,9 +1,9 @@
-# cellwall:generated sha256=99746c423047dbe0451bdc0a43711bc5216f3bdfa78fc233b26d4a0398e5a3c0
+# kennel:generated sha256=2024deeb3c868abce844e6230e2c0004e32ac2a1af19e40cfcc5cb4b9e67846c
 # Agent image for node-vite.
 # Built on the HOST network (not sandboxed). At run time the container is attached only to the
 # internal `sandbox` network, so it reaches the internet only through the gateway.
-# Every base and toolchain image is pinned by digest (they move only when you upgrade cellwall and re-run `cellwall init`).
-# Edit .cellwall/config.yaml and re-run `cellwall init`; hand edits to this file are detected and kept.
+# Every base and toolchain image is pinned by digest (they move only when you upgrade kennel and re-run `kennel init`).
+# Edit .kennel/config.yaml and re-run `kennel init`; hand edits to this file are detected and kept.
 
 ARG UID=1000
 ARG GID=1000
@@ -60,10 +60,10 @@ RUN set -eux; \
 RUN install -d -o "${UID}" -g "${GID}" /workspace '/workspace/node_modules' \
  && install -d -o "${UID}" -g "${GID}" /home/dev/.cache
 
-COPY --chmod=0755 entrypoint.sh /usr/local/bin/cellwall-entrypoint
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/kennel-entrypoint
 
 USER dev
 WORKDIR /workspace
 ENV HOME=/home/dev
-ENTRYPOINT ["/usr/local/bin/cellwall-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/kennel-entrypoint"]
 CMD ["sleep", "infinity"]

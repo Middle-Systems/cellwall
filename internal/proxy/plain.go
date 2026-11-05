@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/policy"
 )
 
 // dialInfo carries the addresses vetted for THIS request to the transport's dialer, so the

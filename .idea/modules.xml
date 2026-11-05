@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/cellwall.iml" filepath="$PROJECT_DIR$/cellwall.iml" />
+      <module fileurl="file://$PROJECT_DIR$/kennel.iml" filepath="$PROJECT_DIR$/kennel.iml" />
     </modules>
   </component>
 </project>

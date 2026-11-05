@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/kennel/internal/policy"
 )
 
 // maxPolicyFile bounds how much of the policy file is read per poll.

@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/policy"
 )
 
 const connectEstablished = "HTTP/1.1 200 Connection Established\r\n\r\n"

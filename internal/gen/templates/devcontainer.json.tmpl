@@ -1,6 +1,6 @@
 {
-  "name": {{(printf "cellwall: %s" .Project) | q}},
-  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  "name": {{(printf "kennel: %s" .Project) | q}},
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
   // (policy, protected-path mounts, secrets); it must exist before the container starts.
   "dockerComposeFile": [
     "compose.yaml",
@@ -11,5 +11,5 @@
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
   "shutdownAction": "stopCompose",
-  "initializeCommand": ["cellwall", "prepare"]
+  "initializeCommand": ["kennel", "prepare"]
 }

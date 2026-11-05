@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/sandbox"
-	"github.com/middle-systems/cellwall/internal/volume"
+	"github.com/middle-systems/kennel/internal/sandbox"
+	"github.com/middle-systems/kennel/internal/volume"
 )
 
 func newFetchCmd(g *globalFlags) *cobra.Command {
@@ -19,13 +19,13 @@ func newFetchCmd(g *globalFlags) *cobra.Command {
 		Use:   "fetch",
 		Short: "Bring the agent's commits from the workspace volume into your repository (volume mode)",
 		Long: "In workspace.mode=volume the agent works on its own copy of the repository. `fetch` copies the\n" +
-			"commits it made into refs/cellwall/<branch> of your repository, after checking the objects with\n" +
+			"commits it made into refs/kennel/<branch> of your repository, after checking the objects with\n" +
 			"git's integrity checks. It never touches your branches or working tree, and it tells you which\n" +
 			"of the changed files run on your machine (protected_paths, .gitmodules, git hooks config, ...).\n\n" +
 			"With --apply, the matching branch is fast-forwarded into your current branch. That stops and\n" +
 			"shows the diff if any protected file changed, and asks you to type 'yes' (or pass\n" +
 			"--allow-protected). Uncommitted work in the agent's copy is not fetched: ask it to commit.",
-		Example: "  cellwall fetch\n  cellwall fetch --apply\n  cellwall fetch --apply --branch feature",
+		Example: "  kennel fetch\n  kennel fetch --apply\n  kennel fetch --apply --branch feature",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			e := hostEnv(cmd, true)
@@ -88,10 +88,10 @@ func printFetch(w io.Writer, r *volume.FetchResult) {
 		}
 	}
 	if r.AgentDirty > 0 {
-		writef(w, "note: the agent has %d uncommitted file(s) that were not fetched. Ask it to commit, or look with `cellwall shell`.\n", r.AgentDirty)
+		writef(w, "note: the agent has %d uncommitted file(s) that were not fetched. Ask it to commit, or look with `kennel shell`.\n", r.AgentDirty)
 	}
 	if len(r.Branches) > 0 {
-		writef(w, "\nnext: `cellwall fetch --apply` fast-forwards your branch, or merge it yourself: git merge %s\n", r.Branches[0].Ref)
+		writef(w, "\nnext: `kennel fetch --apply` fast-forwards your branch, or merge it yourself: git merge %s\n", r.Branches[0].Ref)
 	}
 }
 
@@ -137,7 +137,7 @@ func confirmProtected(cmd *cobra.Command, g *globalFlags, branch string, pe *vol
 		return &ExitError{Code: 1, Msg: "protected files changed"}
 	}
 	if !ok {
-		writef(out, "nothing was merged. The fetched branch is still at refs/cellwall/%s.\n", branch)
+		writef(out, "nothing was merged. The fetched branch is still at refs/kennel/%s.\n", branch)
 		return &ExitError{Code: 1, Msg: "not confirmed"}
 	}
 	return nil

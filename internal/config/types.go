@@ -1,4 +1,4 @@
-// Package config defines cellwall's project configuration (.cellwall/config.yaml): its schema,
+// Package config defines kennel's project configuration (.kennel/config.yaml): its schema,
 // layering, validation and canonical form.
 //
 // Posture (docs/decisions/0003 and 0006): everything that merely tunes the sandbox is a plain
@@ -51,9 +51,9 @@ type Config struct {
 type Agent struct {
 	// Preset selects built-in install and defaults: "claude", or "none" for a bring-your-own agent.
 	Preset string `yaml:"preset,omitempty" json:"preset"`
-	// Command is the argv started by `cellwall run`. No shell is involved.
+	// Command is the argv started by `kennel run`. No shell is involved.
 	Command []string `yaml:"command,omitempty" json:"command"`
-	// Version of the agent to install. cellwall ships integrity pins for pins.ClaudeCodeVersion only.
+	// Version of the agent to install. kennel ships integrity pins for pins.ClaudeCodeVersion only.
 	Version string `yaml:"version,omitempty" json:"version"`
 	// Telemetry allows the agent's optional telemetry and error reporting. Off by default; turning
 	// it on also adds the matching gateway allowlist preset so the setting and the policy agree.
@@ -71,7 +71,7 @@ type Agent struct {
 
 // Devcontainer locates the generated files.
 type Devcontainer struct {
-	// Dir is ".devcontainer" (the default) or ".devcontainer/cellwall", which `init --merge` uses so
+	// Dir is ".devcontainer" (the default) or ".devcontainer/kennel", which `init --merge` uses so
 	// that a repository's own devcontainer configuration is left untouched.
 	Dir string `yaml:"dir,omitempty" json:"dir"`
 }
@@ -79,7 +79,7 @@ type Devcontainer struct {
 // Devcontainer directories init may use.
 const (
 	DevcontainerDir      = ".devcontainer"
-	DevcontainerMergeDir = ".devcontainer/cellwall"
+	DevcontainerMergeDir = ".devcontainer/kennel"
 )
 
 // Workspace configures how the repository reaches the agent container.

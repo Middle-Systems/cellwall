@@ -8,9 +8,9 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/middle-systems/cellwall/internal/compose"
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/volume"
+	"github.com/middle-systems/kennel/internal/compose"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/volume"
 )
 
 // agentRunner runs commands in the agent container for the volume package.
@@ -29,7 +29,7 @@ func (a agentRunner) Run(ctx context.Context, stdin io.Reader, stdout io.Writer,
 
 // ErrNotVolumeMode is returned by commands that only make sense when the repository lives in a
 // volume.
-var ErrNotVolumeMode = errors.New("workspace.mode is bind: the agent works directly in your working tree, so there is nothing to fetch\n  next: use `git diff` / `git status`, or switch with workspace.mode: volume in .cellwall/config.yaml and `cellwall init`")
+var ErrNotVolumeMode = errors.New("workspace.mode is bind: the agent works directly in your working tree, so there is nothing to fetch\n  next: use `git diff` / `git status`, or switch with workspace.mode: volume in .kennel/config.yaml and `kennel init`")
 
 func volumeProject(ctx context.Context, e Env, root string) (*compose.Project, volume.Repo, agentRunner, error) {
 	p, err := compose.Open(root, e.GlobalDir)
@@ -41,10 +41,10 @@ func volumeProject(ctx context.Context, e Env, root string) (*compose.Project, v
 	}
 	up, err := Running(ctx, e, p, compose.AgentService)
 	if err != nil {
-		return nil, volume.Repo{}, agentRunner{}, fmt.Errorf("could not query the sandbox: %s\n  next: run `cellwall doctor`", Brief(err))
+		return nil, volume.Repo{}, agentRunner{}, fmt.Errorf("could not query the sandbox: %s\n  next: run `kennel doctor`", Brief(err))
 	}
 	if !up {
-		return nil, volume.Repo{}, agentRunner{}, errors.New("the agent container is not running, so its repository cannot be read\n  next: run `cellwall up`, then retry")
+		return nil, volume.Repo{}, agentRunner{}, errors.New("the agent container is not running, so its repository cannot be read\n  next: run `kennel up`, then retry")
 	}
 	abs, err := filepath.Abs(root)
 	if err != nil {
@@ -63,7 +63,7 @@ func SeedVolume(ctx context.Context, e Env, root string) (*volume.SeedResult, er
 	return volume.Seed(ctx, ag, repo, repo.Dir, volume.DefaultLayout)
 }
 
-// Fetch brings the agent's commits into refs/cellwall/* on the host.
+// Fetch brings the agent's commits into refs/kennel/* on the host.
 func Fetch(ctx context.Context, e Env, root string) (*volume.FetchResult, *config.Config, error) {
 	p, repo, ag, err := volumeProject(ctx, e, root)
 	if err != nil {

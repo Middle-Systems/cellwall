@@ -37,7 +37,7 @@ func statuses(rep verifyReport) map[string]string {
 	return m
 }
 
-// TestVerifyCommand runs `cellwall verify --strict` against the real topology: every check of spec
+// TestVerifyCommand runs `kennel verify --strict` against the real topology: every check of spec
 // section 10 must PASS (a skip fails in strict mode), and then proves the suite is not vacuous by
 // breaking the sandbox on purpose and requiring it to notice.
 func TestVerifyCommand(t *testing.T) {

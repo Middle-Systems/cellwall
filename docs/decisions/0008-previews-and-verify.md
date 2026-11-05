@@ -17,7 +17,7 @@ Status: accepted.
 - **Not through the proxy.** Previews use their own listeners, not the policy engine: the traffic
   is inbound and the destination is fixed, so a policy would add nothing. They are not audited per
   connection; `status` and `ports ls` show what is published.
-- **`ports add|rm`** edits `.cellwall/config.yaml` through the YAML node tree (comments survive),
+- **`ports add|rm`** edits `.kennel/config.yaml` through the YAML node tree (comments survive),
   regenerates the compose file, and recreates only the gateway (in-flight proxy connections are
   dropped; the agent is untouched). It refuses, and undoes the config edit, when the compose file
   was edited by hand or the port is invalid: a silently unpublished preview is worse than an error.
@@ -30,7 +30,7 @@ Status: accepted.
 ## `verify`
 
 - The twelve checks of spec section 10 live in `internal/verify` behind an `Env` interface, so the
-  CLI, CI and the unit tests share them. CI runs `cellwall verify --strict` on the real topology.
+  CLI, CI and the unit tests share them. CI runs `kennel verify --strict` on the real topology.
 - **PASS / FAIL / SKIP.** A check that cannot run is never a pass. Checks that need outbound
   network from the gateway (SNI/ECH, hot reload) SKIP without it; `--strict` fails on skips.
 - **Positive controls.** "Blocked" is only meaningful if the same path works when it should: the

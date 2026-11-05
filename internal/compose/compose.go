@@ -1,4 +1,4 @@
-// Package compose runs `docker compose` for a cellwall project.
+// Package compose runs `docker compose` for a kennel project.
 //
 // Every invocation is an argv vector (never a shell string). The same file list is used for every
 // command so `up`, `exec`, `down` and `ps` always agree about the project.
@@ -15,9 +15,9 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/engine"
-	"github.com/middle-systems/cellwall/internal/gen"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/engine"
+	"github.com/middle-systems/kennel/internal/gen"
 )
 
 // Service names in the generated compose file.
@@ -28,9 +28,9 @@ const (
 
 // EntrypointPath is the agent image's entrypoint. `docker exec` does not run the image's
 // ENTRYPOINT, so interactive commands are started through it to get declared secrets exported.
-const EntrypointPath = "/usr/local/bin/cellwall-entrypoint"
+const EntrypointPath = "/usr/local/bin/kennel-entrypoint"
 
-// Project is a cellwall project's compose configuration.
+// Project is a kennel project's compose configuration.
 type Project struct {
 	Root    string
 	Cfg     *config.Config
@@ -55,9 +55,9 @@ func Open(root, globalDir string) (*Project, error) {
 	dir := filepath.Join(abs, filepath.FromSlash(lay.Dir))
 	base := filepath.Join(dir, "compose.yaml")
 	if _, err := os.Stat(base); err != nil {
-		return nil, fmt.Errorf("%s does not exist\n  next: run `cellwall init` to generate the sandbox files", filepath.ToSlash(filepath.Join(lay.Dir, "compose.yaml")))
+		return nil, fmt.Errorf("%s does not exist\n  next: run `kennel init` to generate the sandbox files", filepath.ToSlash(filepath.Join(lay.Dir, "compose.yaml")))
 	}
-	p := &Project{Root: abs, Cfg: cfg, Name: "cw-" + cfg.Project, Dir: dir, Files: []string{base}}
+	p := &Project{Root: abs, Cfg: cfg, Name: "kennel-" + cfg.Project, Dir: dir, Files: []string{base}}
 	state := filepath.Join(abs, filepath.FromSlash(gen.StateDirRel))
 	if o := filepath.Join(state, "compose.override.yaml"); exists(o) {
 		p.Files = append(p.Files, o)
@@ -126,7 +126,7 @@ func runDocker(ctx context.Context, st Streams, args []string) (int, error) {
 
 	if err := cmd.Start(); err != nil {
 		if errors.Is(err, exec.ErrNotFound) {
-			return 0, fmt.Errorf("docker was not found on PATH\n  next: install Docker (or a compatible engine) and run `cellwall doctor`")
+			return 0, fmt.Errorf("docker was not found on PATH\n  next: install Docker (or a compatible engine) and run `kennel doctor`")
 		}
 		return 0, err
 	}

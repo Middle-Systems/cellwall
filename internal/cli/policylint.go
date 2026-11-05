@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/prepare"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/prepare"
 )
 
 func newPolicyCmd(g *globalFlags) *cobra.Command {
@@ -37,7 +37,7 @@ func newPolicyLintCmd(g *globalFlags) *cobra.Command {
 		Use:   "lint [file...]",
 		Short: "Check the policy for dangerous wildcards, private-range allows and other weakened controls",
 		Long: "Without arguments, lints the policy the sandbox would actually enforce: the agent's own hosts,\n" +
-			"your user-global policy, .cellwall/policy.yaml and any session rules, after presets are expanded.\n" +
+			"your user-global policy, .kennel/policy.yaml and any session rules, after presets are expanded.\n" +
 			"With file arguments, lints those policy files on their own.\n\n" +
 			"Errors (wildcards over TLDs, public suffixes and user-content domains) stop the policy from\n" +
 			"loading at all. Warnings are weakened controls you chose on purpose. Exits non-zero on any error,\n" +

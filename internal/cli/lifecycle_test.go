@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
+	"github.com/middle-systems/kennel/internal/audit"
 )
 
 const fakeDockerScript = `#!/bin/sh
@@ -97,7 +97,7 @@ func TestRunStartsTheSandboxThenExecsThroughTheEntrypointAndPropagatesTheExitCod
 	if up < 0 || ex < 0 || up > ex {
 		t.Fatalf("up must come before exec:\n%s", strings.Join(lines, "\n"))
 	}
-	if !strings.Contains(lines[ex], "exec -T agent /usr/local/bin/cellwall-entrypoint claude --model sonnet") {
+	if !strings.Contains(lines[ex], "exec -T agent /usr/local/bin/kennel-entrypoint claude --model sonnet") {
 		t.Errorf("the agent must be started through the entrypoint with the user's arguments: %s", lines[ex])
 	}
 }
@@ -113,7 +113,7 @@ func TestRunWithExitZeroSucceeds(t *testing.T) {
 func TestAnEmptyAgentCommandIsRefusedByConfigBeforeAnythingStarts(t *testing.T) {
 	fakeEngine(t)
 	dir := initialisedProject(t, "go-http")
-	cfg := filepath.Join(dir, ".cellwall", "config.yaml")
+	cfg := filepath.Join(dir, ".kennel", "config.yaml")
 	b, _ := os.ReadFile(cfg)
 	b = []byte(strings.Replace(string(b), `command: ["claude"]`, `command: []`, 1))
 	if err := os.WriteFile(cfg, b, 0o644); err != nil {
@@ -133,7 +133,7 @@ func TestRunBeforeInitSaysInit(t *testing.T) {
 	fakeEngine(t)
 	dir := fixture(t, "go-http")
 	_, _, err := runWith(t, "", "run", "--project-dir", dir, "--no-tty")
-	if err == nil || !strings.Contains(err.Error(), "cellwall init") {
+	if err == nil || !strings.Contains(err.Error(), "kennel init") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -143,7 +143,7 @@ func TestShellNeedsARunningSandbox(t *testing.T) {
 	dir := initialisedProject(t, "go-http")
 	t.Setenv("FAKE_RUNNING", "0")
 	_, _, err := runWith(t, "", "shell", "--project-dir", dir, "--no-tty")
-	if err == nil || !strings.Contains(err.Error(), "cellwall up") {
+	if err == nil || !strings.Contains(err.Error(), "kennel up") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -168,14 +168,14 @@ func TestUpWithTheEngineDownSaysSo(t *testing.T) {
 	dir := initialisedProject(t, "go-http")
 	t.Setenv("FAKE_INFO_FAIL", "1")
 	_, _, err := runWith(t, "", "up", "--project-dir", dir)
-	if err == nil || !strings.Contains(err.Error(), "not reachable") || !strings.Contains(err.Error(), "cellwall doctor") {
+	if err == nil || !strings.Contains(err.Error(), "not reachable") || !strings.Contains(err.Error(), "kennel doctor") {
 		t.Fatalf("got %v", err)
 	}
 	if firstIndex(calls(t, log), " up ") >= 0 {
 		t.Error("nothing should be started when the engine is down")
 	}
 	// And prepare must not have run: a failed `up` leaves no half-written state.
-	if _, statErr := os.Stat(filepath.Join(dir, ".cellwall", "state")); statErr == nil {
+	if _, statErr := os.Stat(filepath.Join(dir, ".kennel", "state")); statErr == nil {
 		t.Error("state was written although the engine check failed")
 	}
 }
@@ -214,16 +214,16 @@ func TestAllowAndDenyFromTheCommandLine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"allowed registry.example.org", "this session only", "next `cellwall up`", "undo with"} {
+	for _, want := range []string{"allowed registry.example.org", "this session only", "next `kennel up`", "undo with"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output lacks %q:\n%s", want, out)
 		}
 	}
 	out, _, err = runWith(t, "", "deny", "--project-dir", dir, "tracker.example.org", "--save")
-	if err != nil || !strings.Contains(out, "saved to .cellwall/policy.yaml") {
+	if err != nil || !strings.Contains(out, "saved to .kennel/policy.yaml") {
 		t.Fatalf("deny --save: %v\n%s", err, out)
 	}
-	pol, _ := os.ReadFile(filepath.Join(dir, ".cellwall", "policy.yaml"))
+	pol, _ := os.ReadFile(filepath.Join(dir, ".kennel", "policy.yaml"))
 	if !strings.Contains(string(pol), "tracker.example.org") {
 		t.Error("the saved deny is not in the committed policy")
 	}
@@ -249,7 +249,7 @@ func TestAllowAndDenyFromTheCommandLine(t *testing.T) {
 func TestLogsDeniedGroupsAndSuggests(t *testing.T) {
 	fakeEngine(t)
 	dir := initialisedProject(t, "go-http")
-	auditDir := filepath.Join(dir, ".cellwall", "state", "audit")
+	auditDir := filepath.Join(dir, ".kennel", "state", "audit")
 	if err := os.MkdirAll(auditDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -273,7 +273,7 @@ func TestLogsDeniedGroupsAndSuggests(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"3  registry.example.org:443", "cellwall allow registry.example.org", "no rule can fix this"} {
+	for _, want := range []string{"3  registry.example.org:443", "kennel allow registry.example.org", "no rule can fix this"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output lacks %q:\n%s", want, out)
 		}
@@ -302,7 +302,7 @@ func TestLogsBeforeTheSandboxHasRunIsNotAnError(t *testing.T) {
 	fakeEngine(t)
 	dir := initialisedProject(t, "go-http")
 	_, errOut, err := runWith(t, "", "logs", "--project-dir", dir, "--denied")
-	if err != nil || !strings.Contains(errOut, "cellwall up") {
+	if err != nil || !strings.Contains(errOut, "kennel up") {
 		t.Fatalf("err=%v stderr=%q", err, errOut)
 	}
 }
@@ -337,7 +337,7 @@ func TestPortsAddRecreatesOnlyTheGatewayWhenRunning(t *testing.T) {
 	if firstIndex(calls(t, log), "up -d --no-deps --wait gateway") < 0 {
 		t.Errorf("only the gateway should be recreated:\n%v", calls(t, log))
 	}
-	cfg, _ := os.ReadFile(filepath.Join(dir, ".cellwall", "config.yaml"))
+	cfg, _ := os.ReadFile(filepath.Join(dir, ".kennel", "config.yaml"))
 	if !strings.Contains(string(cfg), "39173") {
 		t.Errorf("config:\n%s", cfg)
 	}
@@ -359,7 +359,7 @@ func TestPortsAddWithTheSandboxDownOnlyEditsFiles(t *testing.T) {
 	dir := initialisedProject(t, "go-http")
 	t.Setenv("FAKE_RUNNING", "0")
 	out, _, err := runWith(t, "", "ports", "add", "--project-dir", dir, "39174")
-	if err != nil || !strings.Contains(out, "next `cellwall up`") {
+	if err != nil || !strings.Contains(out, "next `kennel up`") {
 		t.Fatalf("%v\n%s", err, out)
 	}
 	if firstIndex(calls(t, log), " up ") >= 0 {

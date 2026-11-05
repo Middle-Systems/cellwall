@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/gateway"
+	"github.com/middle-systems/kennel/internal/gateway"
 )
 
 // newGatewayCmd is the process that runs inside the gateway container. It is hidden: users never

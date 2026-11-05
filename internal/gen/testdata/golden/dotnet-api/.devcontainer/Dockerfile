@@ -1,9 +1,9 @@
-# cellwall:generated sha256=3147571ee4620f11f0a8e48350e89710debcb6f2afde9d6d3d2ce3a1be6bb6e2
+# kennel:generated sha256=6051bb14a794e39903b75334f77863d2d5d9a785011eedf41fac0e2bb8f76676
 # Agent image for dotnet-api.
 # Built on the HOST network (not sandboxed). At run time the container is attached only to the
 # internal `sandbox` network, so it reaches the internet only through the gateway.
-# Every base and toolchain image is pinned by digest (they move only when you upgrade cellwall and re-run `cellwall init`).
-# Edit .cellwall/config.yaml and re-run `cellwall init`; hand edits to this file are detected and kept.
+# Every base and toolchain image is pinned by digest (they move only when you upgrade kennel and re-run `kennel init`).
+# Edit .kennel/config.yaml and re-run `kennel init`; hand edits to this file are detected and kept.
 
 ARG UID=1000
 ARG GID=1000
@@ -65,10 +65,10 @@ RUN set -eux; \
 RUN install -d -o "${UID}" -g "${GID}" /workspace '/workspace/bin' '/workspace/obj' \
  && install -d -o "${UID}" -g "${GID}" /home/dev/.cache
 
-COPY --chmod=0755 entrypoint.sh /usr/local/bin/cellwall-entrypoint
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/kennel-entrypoint
 
 USER dev
 WORKDIR /workspace
 ENV HOME=/home/dev
-ENTRYPOINT ["/usr/local/bin/cellwall-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/kennel-entrypoint"]
 CMD ["sleep", "infinity"]

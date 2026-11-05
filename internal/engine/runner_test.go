@@ -9,7 +9,7 @@ import (
 )
 
 func TestExecRunnerNotFound(t *testing.T) {
-	_, err := ExecRunner{}.Run(context.Background(), "cellwall-definitely-not-a-real-binary")
+	_, err := ExecRunner{}.Run(context.Background(), "kennel-definitely-not-a-real-binary")
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}

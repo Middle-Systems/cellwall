@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/middle-systems/cellwall/internal/version"
+	"github.com/middle-systems/kennel/internal/version"
 )
 
 func run(t *testing.T, args ...string) (string, string, error) {
@@ -21,7 +21,7 @@ func run(t *testing.T, args ...string) (string, string, error) {
 
 func TestVersionText(t *testing.T) {
 	out, _, err := run(t, "version")
-	if err != nil || !strings.HasPrefix(out, "cellwall "+version.Version) {
+	if err != nil || !strings.HasPrefix(out, "kennel "+version.Version) {
 		t.Fatalf("out=%q err=%v", out, err)
 	}
 }

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/middle-systems/cellwall/internal/safefs"
+	"github.com/middle-systems/kennel/internal/safefs"
 )
 
 // Report summarises what Apply did.

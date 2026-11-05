@@ -1,4 +1,4 @@
-MODULE  := github.com/middle-systems/cellwall
+MODULE  := github.com/middle-systems/kennel
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 # Fixed timestamp source keeps builds reproducible: use the commit time, not "now".
@@ -11,7 +11,7 @@ LDFLAGS := -s -w -X $(MODULE)/internal/version.Version=$(VERSION) \
 all: lint test build
 
 build:
-	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/cellwall ./cmd/cellwall
+	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/kennel ./cmd/kennel
 
 test:
 	go test -race ./...
@@ -43,14 +43,14 @@ spikes:
 
 cross:
 	for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do \
-	  GOOS=$${t%/*} GOARCH=$${t#*/} CGO_ENABLED=0 go build -trimpath -o /dev/null ./cmd/cellwall || exit 1; done
+	  GOOS=$${t%/*} GOARCH=$${t#*/} CGO_ENABLED=0 go build -trimpath -o /dev/null ./cmd/kennel || exit 1; done
 
 # Builds the gateway image from the host-arch linux binary (the release build uses per-arch binaries).
 gateway-image:
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(shell go env GOARCH) go build -trimpath -ldflags '$(LDFLAGS)' -o dist/cellwall-linux ./cmd/cellwall
-	docker build -f internal/gatewayimage/Dockerfile --build-arg BINARY=cellwall-linux --label io.cellwall.binary-sha256=$$(sha256sum dist/cellwall-linux | cut -d" " -f1) -t cellwall-gateway:dev -t cellwall-gateway:local dist
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(shell go env GOARCH) go build -trimpath -ldflags '$(LDFLAGS)' -o dist/kennel-linux ./cmd/kennel
+	docker build -f internal/gatewayimage/Dockerfile --build-arg BINARY=kennel-linux --label io.kennel.binary-sha256=$$(sha256sum dist/kennel-linux | cut -d" " -f1) -t kennel-gateway:dev -t kennel-gateway:local dist
 
-# End-to-end escape checks against real containers (needs Docker). CI sets CELLWALL_E2E_REQUIRE=1
+# End-to-end escape checks against real containers (needs Docker). CI sets KENNEL_E2E_REQUIRE=1
 # so a missing Docker is a failure there, not a skip.
 e2e:
 	go test -tags e2e -count=1 -timeout 30m ./test/e2e/...

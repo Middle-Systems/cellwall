@@ -1,6 +1,6 @@
-# Per-session additions to compose.yaml, written by `cellwall prepare`. Not committed.
+# Per-session additions to compose.yaml, written by `kennel prepare`. Not committed.
 # Protected paths are mounted read-only over the writable workspace; each parent directory is
-# pinned as its own mount point so it cannot be renamed away and replaced (cellwall docs: decisions/0002).
+# pinned as its own mount point so it cannot be renamed away and replaced (kennel docs: decisions/0002).
 {{- if or .Mounts .Secrets}}
 services:
   agent:

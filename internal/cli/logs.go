@@ -11,9 +11,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/auditlog"
-	"github.com/middle-systems/cellwall/internal/gen"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/auditlog"
+	"github.com/middle-systems/kennel/internal/gen"
 )
 
 func newLogsCmd(g *globalFlags) *cobra.Command {
@@ -23,9 +23,9 @@ func newLogsCmd(g *globalFlags) *cobra.Command {
 		Use:   "logs",
 		Short: "Read the gateway's audit log",
 		Long: "Shows every decision the gateway made (allowed, denied, closed), from the audit log kept under\n" +
-			".cellwall/state/audit/. With --denied, groups the refused destinations by host with counts and\n" +
+			".kennel/state/audit/. With --denied, groups the refused destinations by host with counts and\n" +
 			"the command that would allow each one (or why no rule can).",
-		Example: "  cellwall logs --denied --since 1h\n  cellwall logs -f\n  cellwall logs --json | jq 'select(.action==\"deny\")'",
+		Example: "  kennel logs --denied --since 1h\n  kennel logs -f\n  kennel logs --json | jq 'select(.action==\"deny\")'",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			root, err := filepath.Abs(g.ProjectDir)
@@ -53,13 +53,13 @@ func newLogsCmd(g *globalFlags) *cobra.Command {
 
 			recs, skipped, err := auditlog.Read(dir, f)
 			if err != nil {
-				return fmt.Errorf("cannot read the audit log in %s: %w\n  next: run `cellwall up` once so the gateway creates it", dir, err)
+				return fmt.Errorf("cannot read the audit log in %s: %w\n  next: run `kennel up` once so the gateway creates it", dir, err)
 			}
 			if skipped > 0 {
 				writef(cmd.ErrOrStderr(), "note: %d line(s) in the audit log were not valid records and were skipped\n", skipped)
 			}
 			if _, statErr := os.Stat(dir); errors.Is(statErr, fs.ErrNotExist) {
-				writef(cmd.ErrOrStderr(), "no audit log yet: the sandbox has not been started (run `cellwall up`)\n")
+				writef(cmd.ErrOrStderr(), "no audit log yet: the sandbox has not been started (run `kennel up`)\n")
 				return nil
 			}
 			if denied {

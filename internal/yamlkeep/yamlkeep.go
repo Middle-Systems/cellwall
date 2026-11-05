@@ -1,6 +1,6 @@
 // Package yamlkeep restores formatting that yaml.v3 loses when a file is decoded to a node tree
 // and written back. Comments survive that round trip but blank lines do not, so an edit such as
-// `cellwall ports add` would otherwise delete every blank line in a file the user lays out by hand.
+// `kennel ports add` would otherwise delete every blank line in a file the user lays out by hand.
 package yamlkeep
 
 import "strings"

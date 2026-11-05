@@ -1,16 +1,16 @@
-// cellwall:generated sha256=bcf719103a94c4b3987c8a3c8c01e0cbf8ee940edf1417ea36a7996251a8a52f
+// kennel:generated sha256=caa375f2237a14af9f78bd98f356ac2c893cf09c6a4f883f473674135f945412
 {
-  "name": "cellwall: python-flask",
-  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  "name": "kennel: python-flask",
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
   // (policy, protected-path mounts, secrets); it must exist before the container starts.
   "dockerComposeFile": [
     "compose.yaml",
-    "../.cellwall/state/compose.override.yaml"
+    "../.kennel/state/compose.override.yaml"
   ],
   "service": "agent",
   "runServices": ["gateway", "agent"],
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
   "shutdownAction": "stopCompose",
-  "initializeCommand": ["cellwall", "prepare"]
+  "initializeCommand": ["kennel", "prepare"]
 }

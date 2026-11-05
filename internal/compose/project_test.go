@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/middle-systems/cellwall/internal/prepare"
-	"github.com/middle-systems/cellwall/internal/scaffold"
+	"github.com/middle-systems/kennel/internal/prepare"
+	"github.com/middle-systems/kennel/internal/scaffold"
 )
 
 func initProject(t *testing.T, merge bool) string {
@@ -29,7 +29,7 @@ func initProject(t *testing.T, merge bool) string {
 
 func TestOpenWithoutInitSaysWhatToDo(t *testing.T) {
 	_, err := Open(t.TempDir(), t.TempDir())
-	if err == nil || !strings.Contains(err.Error(), "cellwall init") {
+	if err == nil || !strings.Contains(err.Error(), "kennel init") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -55,7 +55,7 @@ func TestOpenFindsFilesAndArgsAreStable(t *testing.T) {
 	if args[0] != "compose" || !slices.Contains(args, "--project-directory") || args[len(args)-2] != "up" {
 		t.Errorf("args = %v", args)
 	}
-	if !strings.HasPrefix(p.Name, "cw-") {
+	if !strings.HasPrefix(p.Name, "kennel-") {
 		t.Errorf("name = %q", p.Name)
 	}
 }

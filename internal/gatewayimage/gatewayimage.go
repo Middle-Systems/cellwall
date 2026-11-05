@@ -1,4 +1,4 @@
-// Package gatewayimage builds the gateway container image from the running cellwall binary.
+// Package gatewayimage builds the gateway container image from the running kennel binary.
 //
 // The gateway is this same static binary in a FROM scratch image (no shell, no libc). Building it
 // from the binary that is running means the gateway can never be a different version from the CLI
@@ -21,7 +21,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/middle-systems/cellwall/internal/engine"
+	"github.com/middle-systems/kennel/internal/engine"
 )
 
 //go:embed Dockerfile
@@ -31,10 +31,10 @@ var dockerfile []byte
 func Dockerfile() []byte { return append([]byte(nil), dockerfile...) }
 
 // Tag is the image name the generated compose files use unless told otherwise.
-const Tag = "cellwall-gateway:local"
+const Tag = "kennel-gateway:local"
 
 // LabelBinarySHA records which binary an image was built from.
-const LabelBinarySHA = "io.cellwall.binary-sha256"
+const LabelBinarySHA = "io.kennel.binary-sha256"
 
 // Outcome says what Ensure did.
 type Outcome int
@@ -117,7 +117,7 @@ func inspect(ctx context.Context, r engine.Runner, image string) (label string, 
 		if errors.As(err, &ce) && strings.Contains(strings.ToLower(ce.Stderr), "no such image") {
 			return "", false, nil
 		}
-		return "", false, fmt.Errorf("could not inspect image %s: %w\n  next: check that the container engine is running (`cellwall doctor`)", image, err)
+		return "", false, fmt.Errorf("could not inspect image %s: %w\n  next: check that the container engine is running (`kennel doctor`)", image, err)
 	}
 	v := strings.TrimSpace(string(out))
 	if v == "<no value>" {
@@ -127,19 +127,19 @@ func inspect(ctx context.Context, r engine.Runner, image string) (label string, 
 }
 
 func build(ctx context.Context, r engine.Runner, exe, sum, image string) error {
-	dir, err := os.MkdirTemp("", "cellwall-gateway-*")
+	dir, err := os.MkdirTemp("", "kennel-gateway-*")
 	if err != nil {
 		return err
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
-	if err := copyFile(exe, filepath.Join(dir, "cellwall"), 0o755); err != nil {
+	if err := copyFile(exe, filepath.Join(dir, "kennel"), 0o755); err != nil {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(dir, "Dockerfile"), dockerfile, 0o644); err != nil { //nolint:gosec // build context in a private temp dir
 		return err
 	}
 	if _, err := r.Run(ctx, "docker", "build", "--label", LabelBinarySHA+"="+sum, "-t", image, dir); err != nil {
-		return fmt.Errorf("building the gateway image failed: %w\n  next: check that the container engine is running (`cellwall doctor`)", err)
+		return fmt.Errorf("building the gateway image failed: %w\n  next: check that the container engine is running (`kennel doctor`)", err)
 	}
 	return nil
 }
@@ -184,12 +184,12 @@ func requireStatic(path string) error {
 	defer func() { _ = f.Close() }()
 	if f.Section(".interp") != nil {
 		return fmt.Errorf("%s is dynamically linked and cannot run in the gateway's scratch image\n"+
-			"  next: install a release build of cellwall, or build with `CGO_ENABLED=0 go build ./cmd/cellwall`", path)
+			"  next: install a release build of kennel, or build with `CGO_ENABLED=0 go build ./cmd/kennel`", path)
 	}
 	return nil
 }
 
-// ensureEmbedded builds the image from the Linux binary carried inside a release build of cellwall,
+// ensureEmbedded builds the image from the Linux binary carried inside a release build of kennel,
 // choosing the architecture of the container engine (Docker Desktop on Apple silicon runs arm64
 // Linux; most Windows machines run amd64).
 func ensureEmbedded(ctx context.Context, o Options, exists bool, label string) (Outcome, error) {
@@ -206,20 +206,20 @@ func ensureEmbedded(ctx context.Context, o Options, exists bool, label string) (
 		if exists {
 			return Present, nil
 		}
-		return 0, fmt.Errorf("the gateway image %s does not exist, and this %s build of cellwall does not carry a gateway for %s\n"+
-			"  next: install the official release (it includes the gateway), build the image on Linux with `make gateway-image`, or pass a published image with `cellwall up --gateway-image <ref>`", o.Image, o.GOOS, arch)
+		return 0, fmt.Errorf("the gateway image %s does not exist, and this %s build of kennel does not carry a gateway for %s\n"+
+			"  next: install the official release (it includes the gateway), build the image on Linux with `make gateway-image`, or pass a published image with `kennel up --gateway-image <ref>`", o.Image, o.GOOS, arch)
 	}
 	h := sha256.Sum256(bin)
 	sum := hex.EncodeToString(h[:])
 	if exists && label == sum {
 		return Present, nil
 	}
-	dir, err := os.MkdirTemp("", "cellwall-gateway-bin-*")
+	dir, err := os.MkdirTemp("", "kennel-gateway-bin-*")
 	if err != nil {
 		return 0, err
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
-	exe := filepath.Join(dir, "cellwall")
+	exe := filepath.Join(dir, "kennel")
 	if err := os.WriteFile(exe, bin, 0o755); err != nil { //nolint:gosec // executable in a private temp dir
 		return 0, err
 	}
@@ -239,7 +239,7 @@ func ensureEmbedded(ctx context.Context, o Options, exists bool, label string) (
 func engineArch(ctx context.Context, r engine.Runner) (string, error) {
 	out, err := r.Run(ctx, "docker", "info", "--format", "{{.Architecture}}")
 	if err != nil {
-		return "", fmt.Errorf("could not ask the container engine for its architecture: %w\n  next: check that the engine is running (`cellwall doctor`)", err)
+		return "", fmt.Errorf("could not ask the container engine for its architecture: %w\n  next: check that the engine is running (`kennel doctor`)", err)
 	}
 	switch a := strings.TrimSpace(string(out)); a {
 	case "x86_64", "amd64":

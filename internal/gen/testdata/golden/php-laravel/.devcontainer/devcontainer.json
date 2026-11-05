@@ -1,16 +1,16 @@
-// cellwall:generated sha256=4d835d6bf6f868248bd38c50d8805db34bbcc8dc7078cc4e8421cd8a412f2e90
+// kennel:generated sha256=b03cc85c7e22371d6f65b6e289c528f07b7b413b2c74a5c3d4d387d8af9301b5
 {
-  "name": "cellwall: php-laravel",
-  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  "name": "kennel: php-laravel",
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
   // (policy, protected-path mounts, secrets); it must exist before the container starts.
   "dockerComposeFile": [
     "compose.yaml",
-    "../.cellwall/state/compose.override.yaml"
+    "../.kennel/state/compose.override.yaml"
   ],
   "service": "agent",
   "runServices": ["gateway", "agent"],
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
   "shutdownAction": "stopCompose",
-  "initializeCommand": ["cellwall", "prepare"]
+  "initializeCommand": ["kennel", "prepare"]
 }

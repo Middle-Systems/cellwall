@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/policy"
 )
 
 // Auditor records decisions. *audit.Logger satisfies it.
@@ -151,7 +151,7 @@ func (s *Server) refuse(w http.ResponseWriter, rec *audit.Record, resp denyRespo
 func writeDeny(w http.ResponseWriter, resp denyResponse) {
 	h := w.Header()
 	h.Set("Content-Type", "text/plain; charset=utf-8")
-	h.Set("X-Cellwall-Reason", resp.Reason)
+	h.Set("X-Kennel-Reason", resp.Reason)
 	h.Set("Connection", "close")
 	w.WriteHeader(resp.Status)
 	_, _ = w.Write([]byte(resp.Body))

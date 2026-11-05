@@ -3,6 +3,6 @@
 *.test
 *.out
 coverage.*
-.cellwall/state/
+.kennel/state/
 .DS_Store
-internal/gatewayimage/embedded/cellwall-*
+internal/gatewayimage/embedded/kennel-*

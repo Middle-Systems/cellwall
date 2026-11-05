@@ -1,9 +1,9 @@
-# cellwall:generated sha256=afd13189489e9701f5e29a770cf2d1f04c9535f0e76cd05e952ec7745309eebb
+# kennel:generated sha256=f913afffdcdb4ed86ad4305dd00ffc271e93188cac8bcbd369138a5bdb4551fa
 # Agent image for java-maven.
 # Built on the HOST network (not sandboxed). At run time the container is attached only to the
 # internal `sandbox` network, so it reaches the internet only through the gateway.
-# Every base and toolchain image is pinned by digest (they move only when you upgrade cellwall and re-run `cellwall init`).
-# Edit .cellwall/config.yaml and re-run `cellwall init`; hand edits to this file are detected and kept.
+# Every base and toolchain image is pinned by digest (they move only when you upgrade kennel and re-run `kennel init`).
+# Edit .kennel/config.yaml and re-run `kennel init`; hand edits to this file are detected and kept.
 
 ARG UID=1000
 ARG GID=1000
@@ -57,10 +57,10 @@ RUN set -eux; \
 RUN install -d -o "${UID}" -g "${GID}" /workspace '/workspace/target' \
  && install -d -o "${UID}" -g "${GID}" /home/dev/.cache
 
-COPY --chmod=0755 entrypoint.sh /usr/local/bin/cellwall-entrypoint
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/kennel-entrypoint
 
 USER dev
 WORKDIR /workspace
 ENV HOME=/home/dev
-ENTRYPOINT ["/usr/local/bin/cellwall-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/kennel-entrypoint"]
 CMD ["sleep", "infinity"]

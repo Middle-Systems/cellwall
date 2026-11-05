@@ -5,7 +5,7 @@ package verify
 // Each prints exactly one JSON document on its last line.
 
 // pyProxy sends raw requests to the proxy named by $HTTPS_PROXY (so the proxy environment is
-// part of what is verified) and reports status, X-Cellwall-Reason and the start of the body.
+// part of what is verified) and reports status, X-Kennel-Reason and the start of the body.
 const pyProxy = `
 import socket, json, os, sys, urllib.parse
 u = urllib.parse.urlparse(os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") or "http://gateway:3128")
@@ -31,7 +31,7 @@ def probe(raw):
     except Exception: pass
     reason = ""
     for l in lines[1:]:
-        if l.lower().startswith("x-cellwall-reason:"): reason = l.split(":", 1)[1].strip()
+        if l.lower().startswith("x-kennel-reason:"): reason = l.split(":", 1)[1].strip()
     return {"status": st, "reason": reason, "line": lines[0][:80], "body": body.decode("latin1")[:200]}
 print(json.dumps([probe(r) for r in json.loads(sys.argv[1])]))
 `

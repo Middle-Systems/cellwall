@@ -1,9 +1,9 @@
-// Package policyedit changes policy on behalf of `cellwall allow` and `cellwall deny`.
+// Package policyedit changes policy on behalf of `kennel allow` and `kennel deny`.
 //
-// There are two scopes. The session layer (.cellwall/state/session-policy.yaml) is local state: it
+// There are two scopes. The session layer (.kennel/state/session-policy.yaml) is local state: it
 // is merged into the effective policy by `prepare`, is never committed, and cannot be reached from
 // the sandbox (the state directory is hidden from the agent). The project layer
-// (.cellwall/policy.yaml) is the committed file; `--save` appends to it, preserving comments.
+// (.kennel/policy.yaml) is the committed file; `--save` appends to it, preserving comments.
 //
 // Neither scope can carry an unsafe_* option: relaxations are only honoured when a person writes
 // them into the reviewed project policy by hand (ADR 0003).
@@ -21,20 +21,20 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/safefs"
-	"github.com/middle-systems/cellwall/internal/yamlkeep"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/safefs"
+	"github.com/middle-systems/kennel/internal/yamlkeep"
 )
 
 // Paths, relative to the project root.
 const (
-	SessionFile = ".cellwall/state/session-policy.yaml"
-	ProjectFile = ".cellwall/policy.yaml"
+	SessionFile = ".kennel/state/session-policy.yaml"
+	ProjectFile = ".kennel/policy.yaml"
 )
 
-const sessionHeader = "# Session rules added with `cellwall allow` / `cellwall deny`. Local state: not committed,\n" +
-	"# not visible to the agent, merged into the effective policy by `cellwall prepare`.\n" +
-	"# Use `--save` to put a rule in the committed .cellwall/policy.yaml instead.\n"
+const sessionHeader = "# Session rules added with `kennel allow` / `kennel deny`. Local state: not committed,\n" +
+	"# not visible to the agent, merged into the effective policy by `kennel prepare`.\n" +
+	"# Use `--save` to put a rule in the committed .kennel/policy.yaml instead.\n"
 
 // Edit is one allow or deny request.
 type Edit struct {
@@ -217,7 +217,7 @@ func Save(root string, e Edit) (added, already []string, ch Change, err error) {
 	path := filepath.Join(root, filepath.FromSlash(ProjectFile))
 	src, err := os.ReadFile(path) //nolint:gosec // fixed location under the project
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil, Change{}, fmt.Errorf("%s does not exist\n  next: run `cellwall init`, or omit --save to allow for this session only", ProjectFile)
+		return nil, nil, Change{}, fmt.Errorf("%s does not exist\n  next: run `kennel init`, or omit --save to allow for this session only", ProjectFile)
 	}
 	if err != nil {
 		return nil, nil, Change{}, err

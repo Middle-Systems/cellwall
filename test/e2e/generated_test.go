@@ -12,21 +12,21 @@ import (
 	"time"
 )
 
-// TestGeneratedTopology runs what `cellwall init` + `cellwall prepare` produce, end to end: the
+// TestGeneratedTopology runs what `kennel init` + `kennel prepare` produce, end to end: the
 // image builds, the gateway becomes healthy, and from inside the agent the sandbox holds (no route
 // around the proxy, protected paths read-only, caches writable, the policy denies by default).
-// It needs the gateway image tagged cellwall-gateway:local (make gateway-image) and network access
+// It needs the gateway image tagged kennel-gateway:local (make gateway-image) and network access
 // to build the agent image.
 func TestGeneratedTopology(t *testing.T) {
 	requireDocker(t)
 	root := repoRoot(t)
 
-	bin := filepath.Join(t.TempDir(), "cellwall")
+	bin := filepath.Join(t.TempDir(), "kennel")
 	if runtime.GOOS == "windows" {
 		bin += ".exe"
 	}
-	if out, err := exec.Command("go", "build", "-o", bin, filepath.Join(root, "cmd", "cellwall")).CombinedOutput(); err != nil {
-		t.Fatalf("build cellwall: %v\n%s", err, out)
+	if out, err := exec.Command("go", "build", "-o", bin, filepath.Join(root, "cmd", "kennel")).CombinedOutput(); err != nil {
+		t.Fatalf("build kennel: %v\n%s", err, out)
 	}
 
 	ws := t.TempDir()
@@ -36,7 +36,7 @@ func TestGeneratedTopology(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	env := append(os.Environ(), "CELLWALL_CONFIG_DIR="+t.TempDir(), "COMPOSE_PROJECT_NAME=cwe2egen")
+	env := append(os.Environ(), "KENNEL_CONFIG_DIR="+t.TempDir(), "COMPOSE_PROJECT_NAME=cwe2egen")
 	runIn := func(name string, args ...string) string {
 		t.Helper()
 		cmd := exec.Command(name, args...)
@@ -52,8 +52,8 @@ func TestGeneratedTopology(t *testing.T) {
 	runIn(bin, "prepare")
 
 	compose := []string{"compose",
-		"-f", ".devcontainer/compose.yaml", "-f", ".cellwall/state/compose.override.yaml",
-		"--env-file", ".cellwall/state/compose.env", "--project-directory", ".devcontainer"}
+		"-f", ".devcontainer/compose.yaml", "-f", ".kennel/state/compose.override.yaml",
+		"--env-file", ".kennel/state/compose.env", "--project-directory", ".devcontainer"}
 	dc := func(args ...string) string {
 		return runIn("docker", append(append([]string{}, compose...), args...)...)
 	}
@@ -101,7 +101,7 @@ func TestGeneratedTopology(t *testing.T) {
 		}
 	})
 	t.Run("gateway state is hidden from the agent", func(t *testing.T) {
-		out, _ := sh(`ls -A /workspace/.cellwall/state | wc -l`)
+		out, _ := sh(`ls -A /workspace/.kennel/state | wc -l`)
 		if strings.TrimSpace(out) != "0" {
 			t.Fatalf("agent can see gateway state: %q", out)
 		}

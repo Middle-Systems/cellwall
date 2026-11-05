@@ -1,5 +1,5 @@
 // Package verify is the escape suite: named, independently reported checks that try to break out
-// of a running sandbox and report whether each attempt failed. It is shared by `cellwall verify`
+// of a running sandbox and report whether each attempt failed. It is shared by `kennel verify`
 // and by CI, so a claim in the README is exactly as strong as the check behind it.
 //
 // A check can end in three ways. PASS means the sandbox held. FAIL means it did not (or the check
@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/policy"
 )
 
 // Status is the outcome of one check.

@@ -3,7 +3,7 @@
 Status: accepted (guides M1/M2 schema design)
 
 ## Context
-Requirement: cellwall is security-first *and* very configurable. Those conflict if any knob can
+Requirement: kennel is security-first *and* very configurable. Those conflict if any knob can
 silently weaken isolation.
 
 ## Decision
@@ -22,7 +22,7 @@ silently weaken isolation.
    session, but a *relaxation* is only honoured from project config or above, never from session
    overrides or environment variables, so a stray env var cannot weaken a committed policy.
 6. **Not configurable at all:** Docker socket mounts, privileged mode, `NET_ADMIN`/`NET_RAW`, and
-   the agent holding the policy files. If a user needs these, cellwall is the wrong tool.
+   the agent holding the policy files. If a user needs these, kennel is the wrong tool.
 
 ## Consequences
 Config schema work in M2 starts from this split. Every relaxation needs a `verify`/lint

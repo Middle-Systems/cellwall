@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/middle-systems/cellwall/internal/engine"
+	"github.com/middle-systems/kennel/internal/engine"
 )
 
 // fakeDocker answers `image inspect` from a table and records builds.
@@ -41,7 +41,7 @@ func (f *fakeDocker) Run(_ context.Context, name string, args ...string) ([]byte
 	case len(args) >= 1 && args[0] == "build":
 		ctxDir := args[len(args)-1]
 		df, _ := os.ReadFile(filepath.Join(ctxDir, "Dockerfile"))
-		bin, _ := os.ReadFile(filepath.Join(ctxDir, "cellwall"))
+		bin, _ := os.ReadFile(filepath.Join(ctxDir, "kennel"))
 		f.built = &struct{ label, tag, dockerfile, binary string }{args[2], args[4], string(df), string(bin)}
 		return nil, nil
 	}
@@ -50,7 +50,7 @@ func (f *fakeDocker) Run(_ context.Context, name string, args ...string) ([]byte
 
 func exe(t *testing.T, content string) string {
 	t.Helper()
-	p := filepath.Join(t.TempDir(), "cellwall")
+	p := filepath.Join(t.TempDir(), "kennel")
 	if err := os.WriteFile(p, []byte(content), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestEngineDownIsReportedNotTreatedAsMissing(t *testing.T) {
 		return nil, &engine.CommandError{Cmd: "docker image inspect", Stderr: "Cannot connect to the Docker daemon", Err: errors.New("exit status 1")}
 	})
 	_, err := Ensure(context.Background(), Options{Runner: r, Image: Tag, Exe: exe(t, "x"), GOOS: "linux"})
-	if err == nil || !strings.Contains(err.Error(), "cellwall doctor") {
+	if err == nil || !strings.Contains(err.Error(), "kennel doctor") {
 		t.Fatalf("got %v", err)
 	}
 }

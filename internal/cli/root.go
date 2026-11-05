@@ -29,9 +29,9 @@ func NewRootCmd(stdout, stderr io.Writer) *cobra.Command {
 	var g globalFlags
 
 	root := &cobra.Command{
-		Use:   "cellwall",
+		Use:   "kennel",
 		Short: "Run coding agents in a sandbox with policy-enforced egress",
-		Long: "cellwall generates and runs a hardened dev-container setup in which a coding agent has\n" +
+		Long: "kennel generates and runs a hardened dev-container setup in which a coding agent has\n" +
 			"no direct network path to the internet. All egress goes through a policy-enforcing proxy\n" +
 			"in a separate container the agent cannot modify.",
 		SilenceUsage:  true,

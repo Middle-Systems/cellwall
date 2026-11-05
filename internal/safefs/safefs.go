@@ -1,7 +1,7 @@
-// Package safefs holds the two filesystem primitives cellwall needs to write into a repository it
+// Package safefs holds the two filesystem primitives kennel needs to write into a repository it
 // does not trust: refusing to traverse symlinks, and replacing files atomically.
 //
-// A hostile repository can ship `.devcontainer -> /etc` or `.cellwall/state -> ~/.ssh`; writing
+// A hostile repository can ship `.devcontainer -> /etc` or `.kennel/state -> ~/.ssh`; writing
 // through such a link from a tool the user runs on the host would put files outside the project.
 package safefs
 
@@ -28,7 +28,7 @@ func SymlinkOnPath(root, rel string) string {
 		}
 		if fi.Mode()&os.ModeSymlink != 0 {
 			r, _ := filepath.Rel(root, cur)
-			return fmt.Sprintf("%s is a symlink; cellwall never writes through symlinks", filepath.ToSlash(r))
+			return fmt.Sprintf("%s is a symlink; kennel never writes through symlinks", filepath.ToSlash(r))
 		}
 	}
 	return ""
@@ -41,7 +41,7 @@ func WriteAtomic(path string, content []byte, mode os.FileMode) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec // project directories are meant to be readable
 		return err
 	}
-	tmp, err := os.CreateTemp(dir, ".cellwall-tmp-*")
+	tmp, err := os.CreateTemp(dir, ".kennel-tmp-*")
 	if err != nil {
 		return err
 	}

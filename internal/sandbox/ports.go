@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/compose"
-	"github.com/middle-systems/cellwall/internal/configedit"
-	"github.com/middle-systems/cellwall/internal/detect"
-	"github.com/middle-systems/cellwall/internal/gen"
-	"github.com/middle-systems/cellwall/internal/prepare"
-	"github.com/middle-systems/cellwall/internal/scaffold"
+	"github.com/middle-systems/kennel/internal/compose"
+	"github.com/middle-systems/kennel/internal/configedit"
+	"github.com/middle-systems/kennel/internal/detect"
+	"github.com/middle-systems/kennel/internal/gen"
+	"github.com/middle-systems/kennel/internal/prepare"
+	"github.com/middle-systems/kennel/internal/scaffold"
 )
 
 // PortInfo describes one preview port.
@@ -30,7 +30,7 @@ type PortInfo struct {
 	Published bool `json:"published"`
 }
 
-// PortsReport is `cellwall ports ls`.
+// PortsReport is `kennel ports ls`.
 type PortsReport struct {
 	Ports        []PortInfo `json:"ports"`
 	AgentRunning bool       `json:"agent_running"`
@@ -123,7 +123,7 @@ func Ports(ctx context.Context, e Env, root string) (*PortsReport, error) {
 		r.Ports = append(r.Ports, info)
 	}
 	if len(ports) == 0 {
-		r.Warnings = append(r.Warnings, "no preview ports are configured; add one with `cellwall ports add <port>`")
+		r.Warnings = append(r.Warnings, "no preview ports are configured; add one with `kennel ports add <port>`")
 	}
 	return r, nil
 }
@@ -187,7 +187,7 @@ func ChangePorts(ctx context.Context, e Env, root string, add, remove []int) (*P
 	for _, r := range remove {
 		i := slices.Index(want, r)
 		if i < 0 {
-			return nil, fmt.Errorf("port %d is not a configured preview port (configured: %v)\n  next: see `cellwall ports ls`", r, have)
+			return nil, fmt.Errorf("port %d is not a configured preview port (configured: %v)\n  next: see `kennel ports ls`", r, have)
 		}
 		want = slices.Delete(want, i, i+1)
 		res.Removed = append(res.Removed, r)
@@ -227,7 +227,7 @@ func ChangePorts(ctx context.Context, e Env, root string, add, remove []int) (*P
 	}
 	if len(blocked) > 0 {
 		names := blocked
-		return nil, undo(fmt.Errorf("cannot regenerate %s: it was edited or is not cellwall's\n  next: re-run with `cellwall init --force` after saving your changes elsewhere, or add the port by hand; nothing was changed", strings.Join(names, ", ")))
+		return nil, undo(fmt.Errorf("cannot regenerate %s: it was edited or is not kennel's\n  next: re-run with `kennel init --force` after saving your changes elsewhere, or add the port by hand; nothing was changed", strings.Join(names, ", ")))
 	}
 	applied, err := plan.Apply()
 	if err != nil {
@@ -239,7 +239,7 @@ func ChangePorts(ctx context.Context, e Env, root string, add, remove []int) (*P
 	}
 
 	if _, err := prepare.Run(prepare.Options{Root: root, GlobalConfigDir: e.GlobalDir}); err != nil {
-		return nil, fmt.Errorf("%w\n  next: the config and compose file were updated; fix the problem and run `cellwall prepare`", err)
+		return nil, fmt.Errorf("%w\n  next: the config and compose file were updated; fix the problem and run `kennel prepare`", err)
 	}
 
 	p, err = compose.Open(root, e.GlobalDir)
@@ -255,7 +255,7 @@ func ChangePorts(ctx context.Context, e Env, root string, add, remove []int) (*P
 			return nil, err
 		}
 		if code != 0 {
-			return nil, fmt.Errorf("the gateway could not be recreated (docker compose exited %d)\n  next: run `cellwall status`; the new port is configured and takes effect at the next `cellwall up`", code)
+			return nil, fmt.Errorf("the gateway could not be recreated (docker compose exited %d)\n  next: run `kennel status`; the new port is configured and takes effect at the next `kennel up`", code)
 		}
 		res.GatewayReset = true
 	}
@@ -278,5 +278,5 @@ func CheckHostPorts(ports []int) error {
 	if len(busy) == 0 {
 		return nil
 	}
-	return fmt.Errorf("port(s) %s are already in use on this machine, so the preview cannot be published there\n  next: stop whatever uses it, or choose another with `cellwall ports rm %s` and `cellwall ports add <port>`", strings.Join(busy, ", "), busy[0])
+	return fmt.Errorf("port(s) %s are already in use on this machine, so the preview cannot be published there\n  next: stop whatever uses it, or choose another with `kennel ports rm %s` and `kennel ports add <port>`", strings.Join(busy, ", "), busy[0])
 }

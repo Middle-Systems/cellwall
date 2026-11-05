@@ -1,5 +1,5 @@
 #!/bin/sh
-# Installs a cellwall release after verifying it. Usage:
+# Installs a kennel release after verifying it. Usage:
 #   scripts/install.sh [--version vX.Y.Z] [--dir ~/.local/bin]
 #
 # Verification: the archive's SHA-256 must match checksums.txt, and checksums.txt must carry a valid
@@ -8,7 +8,7 @@
 # --insecure-skip-signature to accept the checksum alone (not recommended).
 set -eu
 
-REPO="middle-systems/cellwall"
+REPO="middle-systems/kennel"
 VERSION=""
 DIR="${HOME}/.local/bin"
 SKIP_SIG=0
@@ -49,7 +49,7 @@ else fail "need sha256sum or shasum"; fi
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 base="https://github.com/$REPO/releases/download/$VERSION"
-archive="cellwall_${VERSION#v}_${os}_${arch}.tar.gz"
+archive="kennel_${VERSION#v}_${os}_${arch}.tar.gz"
 
 curl -fsSL -o "$tmp/$archive" "$base/$archive" || fail "could not download $base/$archive"
 curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt" || fail "could not download checksums.txt"
@@ -69,8 +69,8 @@ want=$(grep "  $archive\$" "$tmp/checksums.txt" | cut -d' ' -f1)
 [ -n "$want" ] || fail "$archive is not listed in checksums.txt"
 [ "$(sha "$tmp/$archive")" = "$want" ] || fail "checksum mismatch for $archive; not installing"
 
-tar -xzf "$tmp/$archive" -C "$tmp" cellwall
+tar -xzf "$tmp/$archive" -C "$tmp" kennel
 mkdir -p "$DIR"
-install -m 0755 "$tmp/cellwall" "$DIR/cellwall"
-echo "installed cellwall $VERSION to $DIR/cellwall"
+install -m 0755 "$tmp/kennel" "$DIR/kennel"
+echo "installed kennel $VERSION to $DIR/kennel"
 case ":$PATH:" in *":$DIR:"*) ;; *) echo "note: $DIR is not on your PATH" ;; esac

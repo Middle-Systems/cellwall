@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/middle-systems/cellwall/internal/pins"
+	"github.com/middle-systems/kennel/internal/pins"
 )
 
 // DefaultProtected are the paths that are read-only inside the agent container by default
@@ -10,7 +10,7 @@ import (
 // `prepare` warns about it instead (see docs/decisions/0002).
 var DefaultProtected = []string{
 	".devcontainer",
-	".cellwall",
+	".kennel",
 	".git/hooks",
 	".githooks",
 	".husky",

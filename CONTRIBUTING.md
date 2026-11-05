@@ -2,7 +2,7 @@
 
 ## Clean-room statement
 
-cellwall is an independent design derived from `PROJECT_SPEC.md` and public documentation only.
+kennel is an independent design derived from `PROJECT_SPEC.md` and public documentation only.
 Contributors must not read, copy, paste or imitate any proprietary implementation of similar
 tooling, and must not reference employer source code, configuration, images or internal
 documents in issues, pull requests or commits. If a design choice looks like it mirrors something

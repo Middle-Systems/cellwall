@@ -3,9 +3,9 @@
 Status: covers everything through M4 (gateway, generated topology, lifecycle, previews, `verify`).
 Topology claims rest on spikes S1-S4, S9, S10 and are **verified on Linux with Docker Engine
 only**; macOS, Windows and other engines are untested. Every claim below is a check you can run:
-`cellwall verify` attacks the live sandbox and reports each property as PASS, FAIL or SKIP.
+`kennel verify` attacks the live sandbox and reports each property as PASS, FAIL or SKIP.
 
-## What cellwall protects against
+## What kennel protects against
 
 A prompt-injected or misbehaving agent, or a malicious dependency script it runs, trying to:
 
@@ -30,7 +30,7 @@ A prompt-injected or misbehaving agent, or a malicious dependency script it runs
 | Policy changes apply without dropping connections | content-hash polling, atomic swap | e2e check 12 |
 | No unaudited egress | decision written before the tunnel opens | `TestAuditFailureFailsClosed` |
 
-## The escape suite: `cellwall verify`
+## The escape suite: `kennel verify`
 
 The same twelve checks run in CI (`TestVerifyCommand`, strict) and against your own sandbox. A
 check never reports PASS when it could not run; a sandbox that cannot be told apart from a broken

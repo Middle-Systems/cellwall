@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/policyedit"
-	"github.com/middle-systems/cellwall/internal/scaffold"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/policyedit"
+	"github.com/middle-systems/kennel/internal/scaffold"
 )
 
 // fakeEngine answers the docker commands Edit and Status make, reporting whatever policy is
@@ -27,7 +27,7 @@ type fakeEngine struct {
 }
 
 func (f *fakeEngine) diskHash() string {
-	b, err := os.ReadFile(filepath.Join(f.root, ".cellwall", "state", "policy", "policy.json"))
+	b, err := os.ReadFile(filepath.Join(f.root, ".kennel", "state", "policy", "policy.json"))
 	if err != nil {
 		return ""
 	}
@@ -102,10 +102,10 @@ func TestAllowWithRunningGatewayWaitsForTheNewPolicy(t *testing.T) {
 	if !res.GatewayUp || !res.Applied || res.GatewayError != "" {
 		t.Fatalf("result = %+v", res)
 	}
-	if !strings.Contains(readFile(t, root, ".cellwall/state/policy/policy.json"), "registry.example.org") {
+	if !strings.Contains(readFile(t, root, ".kennel/state/policy/policy.json"), "registry.example.org") {
 		t.Error("the effective policy does not contain the new host")
 	}
-	if strings.Contains(readFile(t, root, ".cellwall/policy.yaml"), "registry.example.org") {
+	if strings.Contains(readFile(t, root, ".kennel/policy.yaml"), "registry.example.org") {
 		t.Error("a session-only allow must not touch the committed policy")
 	}
 }
@@ -143,11 +143,11 @@ func TestSaveWritesTheCommittedPolicyAndKeepsItsComments(t *testing.T) {
 	if _, err := Edit(context.Background(), Env{Runner: &fakeEngine{root: root}, GlobalDir: global}, root, opts); err != nil {
 		t.Fatal(err)
 	}
-	pol := readFile(t, root, ".cellwall/policy.yaml")
-	if !strings.Contains(pol, "api.example.org") || !strings.Contains(pol, "# cellwall egress policy") {
+	pol := readFile(t, root, ".kennel/policy.yaml")
+	if !strings.Contains(pol, "api.example.org") || !strings.Contains(pol, "# kennel egress policy") {
 		t.Errorf("committed policy:\n%s", pol)
 	}
-	if readFile(t, root, ".cellwall/state/session-policy.yaml") != "" {
+	if readFile(t, root, ".kennel/state/session-policy.yaml") != "" {
 		t.Error("--save must not also create a session rule")
 	}
 	// Saving the same rule again says it was already there.
@@ -166,17 +166,17 @@ func TestAllowRefusedWhenADenyStillWinsAndNothingIsLeftBehind(t *testing.T) {
 	if _, err := Edit(context.Background(), Env{Runner: &fakeEngine{root: root}, GlobalDir: global}, root, allow("registry.example.org")); err != nil {
 		t.Fatal(err)
 	}
-	beforePolicy := readFile(t, root, ".cellwall/state/policy/policy.json")
-	beforeSession := readFile(t, root, ".cellwall/state/session-policy.yaml")
-	beforeProject := readFile(t, root, ".cellwall/policy.yaml")
+	beforePolicy := readFile(t, root, ".kennel/state/policy/policy.json")
+	beforeSession := readFile(t, root, ".kennel/state/session-policy.yaml")
+	beforeProject := readFile(t, root, ".kennel/policy.yaml")
 
 	_, err := Edit(context.Background(), Env{Runner: &fakeEngine{root: root}, GlobalDir: global}, root, allow("tracker.example.org"))
 	if err == nil || !strings.Contains(err.Error(), "still denied") || !strings.Contains(err.Error(), "next:") {
 		t.Fatalf("want an actionable refusal, got %v", err)
 	}
-	if readFile(t, root, ".cellwall/state/policy/policy.json") != beforePolicy ||
-		readFile(t, root, ".cellwall/state/session-policy.yaml") != beforeSession ||
-		readFile(t, root, ".cellwall/policy.yaml") != beforeProject {
+	if readFile(t, root, ".kennel/state/policy/policy.json") != beforePolicy ||
+		readFile(t, root, ".kennel/state/session-policy.yaml") != beforeSession ||
+		readFile(t, root, ".kennel/policy.yaml") != beforeProject {
 		t.Error("a refused allow changed files")
 	}
 }
@@ -188,7 +188,7 @@ func TestDangerousWildcardIsRefusedAndRolledBack(t *testing.T) {
 		if err == nil {
 			t.Errorf("%s must be refused", host)
 		}
-		if readFile(t, root, ".cellwall/state/session-policy.yaml") != "" {
+		if readFile(t, root, ".kennel/state/session-policy.yaml") != "" {
 			t.Errorf("%s: the refused rule was left in the session layer", host)
 		}
 	}
@@ -215,7 +215,7 @@ func TestBadHostsAreRefusedBeforeAnythingIsWritten(t *testing.T) {
 			t.Errorf("%q must be refused", h)
 		}
 	}
-	if readFile(t, root, ".cellwall/state/session-policy.yaml") != "" {
+	if readFile(t, root, ".kennel/state/session-policy.yaml") != "" {
 		t.Error("a refused host left a session file")
 	}
 }

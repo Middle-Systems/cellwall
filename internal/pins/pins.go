@@ -13,15 +13,15 @@ import (
 	"regexp"
 )
 
-// ClaudeCodeVersion is the agent version cellwall ships a verified lockfile for. Choosing another
-// agent.version is allowed but is installed without a cellwall-held integrity pin (init warns).
+// ClaudeCodeVersion is the agent version kennel ships a verified lockfile for. Choosing another
+// agent.version is allowed but is installed without a kennel-held integrity pin (init warns).
 const ClaudeCodeVersion = "2.1.286"
 
 //go:embed claude/package.json claude/package-lock.json
 var claudeFS embed.FS
 
 // ClaudeLock returns the package.json and package-lock.json that pin Claude Code at version, or
-// ok=false when cellwall does not hold a lockfile for that version.
+// ok=false when kennel does not hold a lockfile for that version.
 func ClaudeLock(version string) (pkgJSON, lockJSON []byte, ok bool) {
 	if version != ClaudeCodeVersion {
 		return nil, nil, false

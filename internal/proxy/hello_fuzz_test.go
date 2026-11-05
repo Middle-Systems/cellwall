@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/middle-systems/cellwall/internal/proxy/proxytest"
+	"github.com/middle-systems/kennel/internal/proxy/proxytest"
 )
 
 func helloSeeds(f *testing.F) {

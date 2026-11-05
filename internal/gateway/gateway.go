@@ -12,10 +12,10 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/forward"
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/proxy"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/forward"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/proxy"
 )
 
 // Defaults for the gateway process.
@@ -240,7 +240,7 @@ func writeJSON(w http.ResponseWriter, v any) {
 }
 
 // Healthcheck contacts the admin endpoint and returns nil if the gateway reports healthy. The
-// scratch gateway image has no shell or curl, so Docker's HEALTHCHECK runs `cellwall gateway
+// scratch gateway image has no shell or curl, so Docker's HEALTHCHECK runs `kennel gateway
 // healthcheck`.
 func Healthcheck(ctx context.Context, admin string) error {
 	if err := ValidateAdminAddr(admin); err != nil {
@@ -264,7 +264,7 @@ func Healthcheck(ctx context.Context, admin string) error {
 }
 
 // FetchStatus returns the admin endpoint's /status document (the active policy hash and reload
-// history). The host CLI runs `cellwall gateway status` inside the gateway container to read it,
+// history). The host CLI runs `kennel gateway status` inside the gateway container to read it,
 // so nothing is published on a host port and the agent has no path to it.
 func FetchStatus(ctx context.Context, admin string) ([]byte, error) {
 	if err := ValidateAdminAddr(admin); err != nil {

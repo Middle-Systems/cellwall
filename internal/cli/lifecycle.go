@@ -11,10 +11,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/compose"
-	"github.com/middle-systems/cellwall/internal/engine"
-	"github.com/middle-systems/cellwall/internal/prepare"
-	"github.com/middle-systems/cellwall/internal/sandbox"
+	"github.com/middle-systems/kennel/internal/compose"
+	"github.com/middle-systems/kennel/internal/engine"
+	"github.com/middle-systems/kennel/internal/prepare"
+	"github.com/middle-systems/kennel/internal/sandbox"
 )
 
 // shellArgv starts bash when the image has it and sh otherwise.
@@ -60,10 +60,10 @@ func newUpCmd(g *globalFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "up",
 		Short: "Build if needed, start the gateway and the agent, and wait until they are healthy",
-		Long: "Runs `cellwall prepare`, makes sure the gateway image exists (on Linux it is built from this very\n" +
+		Long: "Runs `kennel prepare`, makes sure the gateway image exists (on Linux it is built from this very\n" +
 			"binary, so the two can never disagree), then starts the gateway and the agent container and\n" +
 			"waits for the gateway's health check. It always returns once the sandbox is up; use\n" +
-			"`cellwall run` or `cellwall shell` to get inside.",
+			"`kennel run` or `kennel shell` to get inside.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			e := hostEnv(cmd, true)
@@ -79,8 +79,8 @@ func newUpCmd(g *globalFlags) *cobra.Command {
 			}
 			printUpSummary(cmd.OutOrStdout(), res)
 			w := cmd.OutOrStdout()
-			writef(w, "\nnext:\n  cellwall run             start the agent\n  cellwall shell           open a shell in the agent container\n"+
-				"  cellwall logs --denied   see what the policy blocked, and how to allow it\n")
+			writef(w, "\nnext:\n  kennel run             start the agent\n  kennel shell           open a shell in the agent container\n"+
+				"  kennel logs --denied   see what the policy blocked, and how to allow it\n")
 			return nil
 		},
 	}
@@ -98,7 +98,7 @@ func nz(s []string) []string {
 
 func printUpSummary(w io.Writer, res *sandbox.UpResult) {
 	pol := res.Prepare.Policy
-	writef(w, "cellwall: sandbox %q is up (policy %s, %d rules)\n", res.Project.Cfg.Project, pol.Hash[:12], len(pol.Policy.Rules))
+	writef(w, "kennel: sandbox %q is up (policy %s, %d rules)\n", res.Project.Cfg.Project, pol.Hash[:12], len(pol.Policy.Rules))
 	printSeeded(w, res)
 	printNotes(w, res.Prepare)
 }
@@ -113,7 +113,7 @@ func printSeeded(w io.Writer, res *sandbox.UpResult) {
 	if s.Overlay+s.Deleted > 0 {
 		writef(w, " plus %d uncommitted file(s) and %d deletion(s)", s.Overlay, s.Deleted)
 	}
-	writef(w, ". Bring the agent's commits back with `cellwall fetch`.\n")
+	writef(w, ". Bring the agent's commits back with `kennel fetch`.\n")
 }
 
 // printNotes shows what must never be silent: active relaxations and warnings.
@@ -138,11 +138,11 @@ func newRunCmd(g *globalFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run [flags] [-- agent args...]",
 		Short: "Start the sandbox if needed and run the agent in it, interactively",
-		Long: "Does what `cellwall up` does, then runs the configured agent command (agent.command in\n" +
-			".cellwall/config.yaml) in the agent container with your terminal attached. Everything after\n" +
+		Long: "Does what `kennel up` does, then runs the configured agent command (agent.command in\n" +
+			".kennel/config.yaml) in the agent container with your terminal attached. Everything after\n" +
 			"`--` is appended to the agent command. Your terminal, signals and the agent's exit status are\n" +
-			"passed through: `cellwall run` exits with exactly the agent's exit code.",
-		Example: "  cellwall run\n  cellwall run -- --model sonnet\n  cellwall run -- -p \"fix the failing test\"",
+			"passed through: `kennel run` exits with exactly the agent's exit code.",
+		Example: "  kennel run\n  kennel run -- --model sonnet\n  kennel run -- -p \"fix the failing test\"",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			e := hostEnv(cmd, noTTY)
 			// Progress goes to stderr so stdout stays the agent's.
@@ -150,13 +150,13 @@ func newRunCmd(g *globalFlags) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			writef(cmd.ErrOrStderr(), "cellwall: sandbox %q ready (policy %s, %d rules)\n", res.Project.Cfg.Project, res.Prepare.Policy.Hash[:12], len(res.Prepare.Policy.Policy.Rules))
+			writef(cmd.ErrOrStderr(), "kennel: sandbox %q ready (policy %s, %d rules)\n", res.Project.Cfg.Project, res.Prepare.Policy.Hash[:12], len(res.Prepare.Policy.Policy.Rules))
 			printSeeded(cmd.ErrOrStderr(), res)
 			printNotes(cmd.ErrOrStderr(), res.Prepare)
 
 			argv := append(append([]string{}, res.Project.Cfg.Agent.Command...), args...)
 			if len(argv) == 0 {
-				return fmt.Errorf("no agent command is configured (agent.command in .cellwall/config.yaml is empty)\n  next: set agent.command, run `cellwall run -- <command>`, or open a shell with `cellwall shell`")
+				return fmt.Errorf("no agent command is configured (agent.command in .kennel/config.yaml is empty)\n  next: set agent.command, run `kennel run -- <command>`, or open a shell with `kennel shell`")
 			}
 			code, err := sandbox.Exec(cmd.Context(), e, g.ProjectDir, argv)
 			if err != nil {
@@ -203,16 +203,16 @@ func newDownCmd(g *globalFlags) *cobra.Command {
 		Use:   "down",
 		Short: "Stop and remove the containers",
 		Long: "Stops and removes the gateway and agent containers and the sandbox networks. Your repository,\n" +
-			".cellwall/ and the audit log are untouched. With --volumes the named volumes are deleted too:\n" +
+			".kennel/ and the audit log are untouched. With --volumes the named volumes are deleted too:\n" +
 			"the agent's home (its login and history) and the dependency caches.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if volumes && !yes {
 				prompt := "This deletes the agent's home volume (its login, history and settings) and the dependency caches.\n"
 				if commits, dirty, known, _ := sandbox.AtRisk(cmd.Context(), hostEnv(cmd, true), g.ProjectDir); !known {
-					prompt += "In volume mode it also deletes the agent's copy of your repository, and the sandbox is not running so\nunfetched work could not be checked: start it and run `cellwall fetch` first if in doubt.\n"
+					prompt += "In volume mode it also deletes the agent's copy of your repository, and the sandbox is not running so\nunfetched work could not be checked: start it and run `kennel fetch` first if in doubt.\n"
 				} else if commits > 0 || dirty > 0 {
-					prompt += fmt.Sprintf("It also deletes the agent's copy of your repository, which holds %d commit(s) you have not fetched\nand %d uncommitted file(s). Run `cellwall fetch` first to keep them.\n", commits, dirty)
+					prompt += fmt.Sprintf("It also deletes the agent's copy of your repository, which holds %d commit(s) you have not fetched\nand %d uncommitted file(s). Run `kennel fetch` first to keep them.\n", commits, dirty)
 				}
 				ok, err := confirm(cmd.InOrStdin(), cmd.ErrOrStderr(), prompt+"Type 'yes' to continue: ")
 				if err != nil {
@@ -227,7 +227,7 @@ func newDownCmd(g *globalFlags) *cobra.Command {
 			if err := sandbox.Down(cmd.Context(), e, g.ProjectDir, sandbox.DownOptions{Volumes: volumes}); err != nil {
 				return err
 			}
-			writef(cmd.OutOrStdout(), "cellwall: sandbox stopped%s.\n", map[bool]string{true: " and its volumes deleted", false: ""}[volumes])
+			writef(cmd.OutOrStdout(), "kennel: sandbox stopped%s.\n", map[bool]string{true: " and its volumes deleted", false: ""}[volumes])
 			return nil
 		},
 	}
@@ -276,7 +276,7 @@ func newStatusCmd(g *globalFlags) *cobra.Command {
 func printStatus(w io.Writer, r *sandbox.StatusReport) {
 	writef(w, "project:   %s   (workspace: %s)\n", r.Project, r.WorkspaceMode)
 	if len(r.Containers) == 0 {
-		writef(w, "sandbox:   not running   (cellwall up)\n")
+		writef(w, "sandbox:   not running   (kennel up)\n")
 	}
 	for _, c := range r.Containers {
 		h := ""
@@ -296,9 +296,9 @@ func printStatus(w io.Writer, r *sandbox.StatusReport) {
 	if v := r.Volume; v != nil {
 		switch {
 		case !v.Seeded:
-			writef(w, "workspace: volume, not seeded yet (cellwall up)\n")
+			writef(w, "workspace: volume, not seeded yet (kennel up)\n")
 		case v.Known && (v.Unfetched > 0 || v.Dirty > 0):
-			writef(w, "workspace: volume (branch %s): %d unfetched commit(s), %d uncommitted file(s) in the agent's copy -> cellwall fetch\n", v.Branch, v.Unfetched, v.Dirty)
+			writef(w, "workspace: volume (branch %s): %d unfetched commit(s), %d uncommitted file(s) in the agent's copy -> kennel fetch\n", v.Branch, v.Unfetched, v.Dirty)
 		default:
 			writef(w, "workspace: volume (branch %s), nothing waiting to be fetched\n", v.Branch)
 		}
@@ -320,7 +320,7 @@ func printStatus(w io.Writer, r *sandbox.StatusReport) {
 		writef(w, "           last reload error: %s\n", p.LastError)
 	}
 	if len(r.Ports) > 0 {
-		writef(w, "previews:  ports %v are configured (forwarding arrives with `cellwall ports`)\n", r.Ports)
+		writef(w, "previews:  ports %v are configured (forwarding arrives with `kennel ports`)\n", r.Ports)
 	}
 	if len(r.Relaxations) > 0 {
 		writef(w, "RELAXATIONS (each weakens the sandbox):\n")

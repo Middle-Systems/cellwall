@@ -10,7 +10,7 @@ not matched is denied, and there is no way to switch that around.
 > by hand and mount its directory into the gateway (see `test/e2e/lab_test.go` for a working
 > example). The layering below is the design the CLI will implement.
 
-`.cellwall/policy.yaml` (project) is merged over built-in defaults and your user-global policy; the
+`.kennel/policy.yaml` (project) is merged over built-in defaults and your user-global policy; the
 host CLI writes the merged, preset-expanded result as `policy.json` for the gateway. YAML or JSON
 are both accepted. Unknown keys, duplicate keys, anchors, aliases and explicit tags are errors, and
 errors carry `file:line:col` and a "did you mean" hint.
@@ -90,16 +90,16 @@ a relaxation.
 ## Layers and changing policy while the sandbox runs
 
 Rules accumulate from four layers, lowest precedence first: the agent's own hosts (from `agent:`
-in `config.yaml`), your user-global `~/.config/cellwall/policy.yaml`, the committed
-`.cellwall/policy.yaml`, and the **session layer** `.cellwall/state/session-policy.yaml`. Deny
+in `config.yaml`), your user-global `~/.config/kennel/policy.yaml`, the committed
+`.kennel/policy.yaml`, and the **session layer** `.kennel/state/session-policy.yaml`. Deny
 beats allow whatever the layer, so a higher layer can add rules but never override a deny.
 
-`cellwall allow|deny <host>...` edits the session layer (or the committed file with `--save`),
+`kennel allow|deny <host>...` edits the session layer (or the committed file with `--save`),
 re-runs `prepare`, and waits for the running gateway to report the new policy hash, normally
 within a second. The command is refused, and undone, if the host would still be denied, if plain
 HTTP is requested (`unsafe_allow_http` can only be set by hand in the project policy), or if the
 result fails lint. Session rules are shown with the relaxations everywhere, because they are not
-in version control. `cellwall logs --denied` lists what was refused and the command that would
+in version control. `kennel logs --denied` lists what was refused and the command that would
 allow each destination, or why no rule can (IP literals, private addresses, SNI mismatches).
 
 ## Presets

@@ -1,20 +1,20 @@
-# cellwall:generated sha256=ebf9416959cb542f0be846c3a95b058673e3e5eb0983c4d8bd01dbc369bab90a
-# Sandbox topology for go-http (cellwall docs: architecture.md).
+# kennel:generated sha256=a59232784caedbb4eaad67ab72e6337b21677eef1638a016dd6d1f95dfd6461d
+# Sandbox topology for go-http (kennel docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
 #
 # The agent has no route out: it is attached only to the `sandbox` network, and the only thing on
 # that network is the gateway, which enforces the policy and runs in a separate container the agent
-# cannot modify. Edit .cellwall/config.yaml and re-run `cellwall init` to change this file.
+# cannot modify. Edit .kennel/config.yaml and re-run `kennel init` to change this file.
 #
 # The per-session parts (policy, audit log, protected-path mounts, secrets) live in
-# .cellwall/state/compose.override.yaml, written by `cellwall prepare`. Always pass both files.
-name: cw-go-http
+# .kennel/state/compose.override.yaml, written by `kennel prepare`. Always pass both files.
+name: kennel-go-http
 
 networks:
   sandbox:
     # internal: no route to the internet. gateway_mode_ipv4=isolated: the host takes no address on
-    # this bridge, so the agent cannot reach host services bound to 0.0.0.0 (cellwall docs: decisions/0001).
+    # this bridge, so the agent cannot reach host services bound to 0.0.0.0 (kennel docs: decisions/0001).
     internal: true
     driver_opts:
       com.docker.network.bridge.gateway_mode_ipv4: isolated
@@ -25,18 +25,18 @@ volumes:
 
 services:
   gateway:
-    image: ${CELLWALL_GATEWAY_IMAGE:-cellwall-gateway:local}
+    image: ${KENNEL_GATEWAY_IMAGE:-kennel-gateway:local}
     command:
       - "--policy"
-      - "/etc/cellwall/policy/policy.json"
+      - "/etc/kennel/policy/policy.json"
       - "--audit-dir"
-      - "/var/log/cellwall"
+      - "/var/log/kennel"
       - "--audit-max-size-mb"
       - "50"
       - "--audit-max-files"
       - "5"
     networks: [sandbox, egress]
-    user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
+    user: "${KENNEL_UID:-1000}:${KENNEL_GID:-1000}"
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
@@ -47,14 +47,14 @@ services:
       # Mount the policy DIRECTORY, never the file: an atomically replaced file would leave a
       # single-file mount pointing at the old inode and hot reload would silently never fire.
       - type: bind
-        source: ${CELLWALL_STATE:-../.cellwall/state}/policy
-        target: /etc/cellwall/policy
+        source: ${KENNEL_STATE:-../.kennel/state}/policy
+        target: /etc/kennel/policy
         read_only: true
         bind:
           create_host_path: false
       - type: bind
-        source: ${CELLWALL_STATE:-../.cellwall/state}/audit
-        target: /var/log/cellwall
+        source: ${KENNEL_STATE:-../.kennel/state}/audit
+        target: /var/log/kennel
         bind:
           create_host_path: false
 
@@ -63,9 +63,9 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        UID: "${CELLWALL_UID:-1000}"
-        GID: "${CELLWALL_GID:-1000}"
-    image: cw-go-http-agent:local
+        UID: "${KENNEL_UID:-1000}"
+        GID: "${KENNEL_GID:-1000}"
+    image: kennel-go-http-agent:local
     networks: [sandbox]
     depends_on:
       gateway:
@@ -78,7 +78,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: 1024
     mem_limit: 8g
-    cpus: ${CELLWALL_CPUS:-4}
+    cpus: ${KENNEL_CPUS:-4}
     read_only: false
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=1g,mode=1777
@@ -100,7 +100,7 @@ services:
       no_proxy: "gateway,localhost,127.0.0.1"
     volumes:
       - type: bind
-        source: ${CELLWALL_WORKSPACE:-..}
+        source: ${KENNEL_WORKSPACE:-..}
         target: /workspace
         bind:
           create_host_path: false

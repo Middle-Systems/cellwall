@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
+	"github.com/middle-systems/kennel/internal/audit"
 )
 
 var t0 = time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
@@ -106,14 +106,14 @@ func TestGroupDeniedCountsAndSuggestsOnlyWhatARuleCanFix(t *testing.T) {
 	if len(got) != 6 {
 		t.Fatalf("groups = %d: %+v", len(got), got)
 	}
-	if got[0].Host != "registry.example.com" || got[0].Count != 3 || got[0].Suggest != "cellwall allow registry.example.com" {
+	if got[0].Host != "registry.example.com" || got[0].Count != 3 || got[0].Suggest != "kennel allow registry.example.com" {
 		t.Errorf("top group = %+v", got[0])
 	}
 	by := map[string]Denied{}
 	for _, d := range got {
 		by[d.Host] = d
 	}
-	if by["api.example.com"].Suggest != "cellwall allow api.example.com --port 8443" {
+	if by["api.example.com"].Suggest != "kennel allow api.example.com --port 8443" {
 		t.Errorf("non-default port: %+v", by["api.example.com"])
 	}
 	for _, h := range []string{"10.0.0.1", "evil.internal.example.com", "tracker.example.com", "plain.example.com"} {

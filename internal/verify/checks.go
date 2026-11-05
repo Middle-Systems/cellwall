@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
+	"github.com/middle-systems/kennel/internal/audit"
 )
 
 // Checks returns the escape suite in order. The numbering follows PROJECT_SPEC.md section 10.
@@ -107,7 +107,7 @@ func connectReq(target string) string {
 }
 
 func checkProxyPolicy(ctx context.Context, e *Env) (Status, string) {
-	denied := "verify-" + e.Token() + ".cellwall-verify.invalid"
+	denied := "verify-" + e.Token() + ".kennel-verify.invalid"
 	allowed := allowedHost(e.Policy)
 	reqs := []string{connectReq(denied + ":443")}
 	if allowed != "" {
@@ -120,7 +120,7 @@ func checkProxyPolicy(ctx context.Context, e *Env) (Status, string) {
 	if out[0].Status != 403 || out[0].Reason != "default-deny" {
 		return Fail, fmt.Sprintf("an unlisted host was not refused with 403 default-deny: %q (reason %q)", out[0].Line, out[0].Reason)
 	}
-	if !strings.Contains(out[0].Body, "cellwall allow") {
+	if !strings.Contains(out[0].Body, "kennel allow") {
 		return Fail, "the 403 body does not tell the agent how to allow the host: " + truncate(out[0].Body, 120)
 	}
 	if _, ok := waitAudit(e, func(r audit.Record) bool {
@@ -167,7 +167,7 @@ func checkIPLiteral(ctx context.Context, e *Env) (Status, string) {
 }
 
 func checkPlainHTTP(ctx context.Context, e *Env) (Status, string) {
-	unlisted := "verify-" + e.Token() + ".cellwall-verify.invalid"
+	unlisted := "verify-" + e.Token() + ".kennel-verify.invalid"
 	allowed := allowedHost(e.Policy)
 	reqs := []string{fmt.Sprintf("GET http://%s/ HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", unlisted, unlisted)}
 	if allowed != "" {
@@ -276,7 +276,7 @@ for p in "$@"; do
   [ -e "$p" ] || { echo "missing:$p"; continue; }
   if printf '%s\n' "$mounts" | awk -v m="/workspace/$p" '$5==m {print $6}' | grep -q '\bro\b'; then echo "mount-ro:$p"; else echo "NOT-A-RO-MOUNT:$p"; rc=1; fi
   if [ -d "$p" ]; then
-    t="$p/.cellwall-verify-$$"
+    t="$p/.kennel-verify-$$"
     if ( : > "$t" ) 2>/dev/null; then echo "WRITABLE:$p"; rm -f "$t"; rc=1; else echo "write-refused:$p"; fi
   else
     if ( : >> "$p" ) 2>/dev/null; then echo "WRITABLE:$p"; rc=1; else echo "write-refused:$p"; fi
@@ -287,8 +287,8 @@ for p in "$@"; do
     d=$(dirname "$d")
   done
 done
-[ -z "$(ls -A /workspace/.cellwall/state 2>/dev/null)" ] || { echo "STATE-VISIBLE"; rc=1; }
-[ ! -e /etc/cellwall ] || { echo "ETC-CELLWALL"; rc=1; }
+[ -z "$(ls -A /workspace/.kennel/state 2>/dev/null)" ] || { echo "STATE-VISIBLE"; rc=1; }
+[ ! -e /etc/kennel ] || { echo "ETC-KENNEL"; rc=1; }
 exit $rc
 `
 
@@ -299,14 +299,14 @@ rc=0
 [ ! -e "/workspace/$m-host" ] || { echo "HOST-FILE-VISIBLE"; rc=1; }
 : > "/workspace/$m-agent" || { echo "CANNOT-WRITE-WORKSPACE"; exit 1; }
 echo "agent-wrote"
-[ -z "$(ls -A /workspace/.cellwall/state 2>/dev/null)" ] || { echo "STATE-VISIBLE"; rc=1; }
-[ ! -e /etc/cellwall ] || { echo "ETC-CELLWALL"; rc=1; }
+[ -z "$(ls -A /workspace/.kennel/state 2>/dev/null)" ] || { echo "STATE-VISIBLE"; rc=1; }
+[ ! -e /etc/kennel ] || { echo "ETC-KENNEL"; rc=1; }
 exit $rc
 `
 
 // checkWorkspaceIsolation is check 8 in volume mode. There are no read-only mounts to test: the
 // protection is that the host working tree is not in the container at all, so nothing the agent
-// writes can land in it except through `cellwall fetch`, which gates protected files.
+// writes can land in it except through `kennel fetch`, which gates protected files.
 func checkWorkspaceIsolation(ctx context.Context, e *Env) (Status, string) {
 	if e.HostMarker == nil || e.HostHas == nil {
 		return Fail, "internal error: volume mode needs host-side file access for this check"
@@ -329,7 +329,7 @@ func checkWorkspaceIsolation(ctx context.Context, e *Env) (Status, string) {
 	if e.HostHas(tok + "-agent") {
 		return Fail, "a file the agent created in /workspace appeared in your repository: the workspace is shared with the host"
 	}
-	return Pass, "the agent's workspace is a separate copy: a file created in your repository does not appear in it, a file the agent creates does not appear on the host, and gateway state is not visible. Changes reach you only through `cellwall fetch`, which holds protected files for confirmation"
+	return Pass, "the agent's workspace is a separate copy: a file created in your repository does not appear in it, a file the agent creates does not appear on the host, and gateway state is not visible. Changes reach you only through `kennel fetch`, which holds protected files for confirmation"
 }
 
 func checkProtected(ctx context.Context, e *Env) (Status, string) {
@@ -456,7 +456,7 @@ func checkHostIsolation(ctx context.Context, e *Env) (Status, string) {
 
 func checkPreview(ctx context.Context, e *Env) (Status, string) {
 	if len(e.Ports) == 0 {
-		return Skip, "no preview ports are configured (cellwall ports add <port>)"
+		return Skip, "no preview ports are configured (kennel ports add <port>)"
 	}
 	port := e.Ports[0]
 	listeners, err := e.Listeners(ctx)
@@ -546,7 +546,7 @@ func checkHotReload(ctx context.Context, e *Env) (Status, string) {
 		return Fail, "unexpected probe output: " + line
 	}
 
-	fresh := "reload-" + e.Token() + ".cellwall-verify.invalid"
+	fresh := "reload-" + e.Token() + ".kennel-verify.invalid"
 	undo, took, err := e.AllowTemp(ctx, []string{fresh})
 	if err != nil {
 		return Fail, "could not add the rule: " + err.Error()

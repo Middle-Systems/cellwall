@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/kennel/internal/policy"
 )
 
-// Reasons used in audit records and X-Cellwall-Reason, beyond the policy package's own.
+// Reasons used in audit records and X-Kennel-Reason, beyond the policy package's own.
 const (
 	ReasonBadTarget        = "bad-target"
 	ReasonIPLiteral        = "ip-literal"
@@ -45,7 +45,7 @@ func hostHint(host string) string {
 
 func messageFor(host string, port int, reason, detail string) denyResponse {
 	target := hostPort(printable(host), port)
-	allow := "cellwall allow " + hostHint(printable(host))
+	allow := "kennel allow " + hostHint(printable(host))
 	var status int
 	var why string
 	switch reason {
@@ -56,7 +56,7 @@ func messageFor(host string, port int, reason, detail string) denyResponse {
 	case policy.ReasonHTTPNotAllow:
 		status, why = http.StatusForbidden, "plain HTTP is not allowed for this host. Use https:// instead."
 	case policy.ReasonExplicitDeny:
-		status, why = http.StatusForbidden, fmt.Sprintf("%s is explicitly denied by policy (%s).\nEdit .cellwall/policy.yaml to change this.", target, detail)
+		status, why = http.StatusForbidden, fmt.Sprintf("%s is explicitly denied by policy (%s).\nEdit .kennel/policy.yaml to change this.", target, detail)
 	case ReasonIPLiteral:
 		status, why = http.StatusForbidden, "IP addresses are not allowed as destinations. Use the hostname."
 	case ReasonBlockedAddress:
@@ -84,5 +84,5 @@ func messageFor(host string, port int, reason, detail string) denyResponse {
 	default:
 		status, why = http.StatusForbidden, fmt.Sprintf("request to %s refused (%s).", target, reason)
 	}
-	return denyResponse{Status: status, Reason: reason, Body: "cellwall: " + why + "\n"}
+	return denyResponse{Status: status, Reason: reason, Body: "kennel: " + why + "\n"}
 }

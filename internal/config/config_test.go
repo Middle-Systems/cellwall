@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/middle-systems/cellwall/internal/pins"
+	"github.com/middle-systems/kennel/internal/pins"
 )
 
 func mustParse(t *testing.T, src string, layer Layer) *Config {
@@ -63,9 +63,9 @@ func TestLayering(t *testing.T) {
 	global := filepath.Join(dir, "global")
 	project := filepath.Join(dir, "proj")
 	_ = os.MkdirAll(global, 0o755)
-	_ = os.MkdirAll(filepath.Join(project, ".cellwall"), 0o755)
+	_ = os.MkdirAll(filepath.Join(project, ".kennel"), 0o755)
 	_ = os.WriteFile(filepath.Join(global, "config.yaml"), []byte("version: 1\nhardening: {memory: 2g, cpus: 2}\ngit: {user_name: Global}\nagent: {env: {FROM_GLOBAL: '1'}}\n"), 0o644)
-	_ = os.WriteFile(filepath.Join(project, ".cellwall", "config.yaml"), []byte("version: 1\nproject: p1\nhardening: {memory: 6g}\nagent: {env: {FROM_PROJECT: '2'}}\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(project, ".kennel", "config.yaml"), []byte("version: 1\nproject: p1\nhardening: {memory: 6g}\nagent: {env: {FROM_PROJECT: '2'}}\n"), 0o644)
 
 	l, err := Load(LoadOptions{ProjectDir: project, GlobalDir: global})
 	if err != nil {
@@ -93,7 +93,7 @@ func TestLayering(t *testing.T) {
 
 func TestUserGlobalCannotRelaxOrInjectSecrets(t *testing.T) {
 	for _, src := range []string{
-		"version: 1\ndevcontainer: {dir: .devcontainer/cellwall}\n",
+		"version: 1\ndevcontainer: {dir: .devcontainer/kennel}\n",
 		"version: 1\nunsafe: {publish_all_interfaces: true}\n",
 		"version: 1\nunsafe: {unprotect: [.mcp.json]}\n",
 		"version: 1\nsecrets:\n  - {name: tok, source_file: ~/tok}\n",
@@ -148,7 +148,7 @@ func TestValidateRejects(t *testing.T) {
 		{"no_proxy env", "agent: {env: {NO_PROXY: '*'}}\n", "reserved"},
 		{"ld_preload", "agent: {env: {LD_PRELOAD: /x.so}}\n", "reserved"},
 		{"ld prefix", "agent: {env: {LD_SOMETHING: x}}\n", "reserved"},
-		{"cellwall prefix", "agent: {env: {CELLWALL_X: x}}\n", "reserved"},
+		{"kennel prefix", "agent: {env: {KENNEL_X: x}}\n", "reserved"},
 		{"docker prefix", "agent: {env: {DOCKER_HOST: tcp://x}}\n", "reserved"},
 		{"telemetry env", "agent: {env: {DISABLE_TELEMETRY: '0'}}\n", "reserved"},
 		{"git identity env", "agent: {env: {GIT_AUTHOR_NAME: x}}\n", "reserved"},
@@ -225,7 +225,7 @@ hardening: {readonly_rootfs: true, runtime: runsc, pids_limit: 512, memory: 4g, 
 gateway: {memory: 128m, pids_limit: 128, audit_max_size_mb: 10, audit_max_files: 3}
 protected_paths: [Makefile, scripts/release.sh]
 secrets:
-  - {name: github_token, source_file: ~/.config/cellwall/github_token, env: GH_TOKEN}
+  - {name: github_token, source_file: ~/.config/kennel/github_token, env: GH_TOKEN}
   - {name: npm_rc, source_file: /home/me/.npmrc}
 git: {user_name: "Agent Smith", user_email: agent@example.com}
 unsafe: {cap_add: [SYS_PTRACE], unprotect: [.vscode/tasks.json]}
@@ -249,7 +249,7 @@ func TestUnpinnedBaseImageNeedsExplicitRelaxation(t *testing.T) {
 func TestProtectedSet(t *testing.T) {
 	c := Default()
 	got := c.ProtectedSet()
-	for _, want := range []string{".devcontainer", ".cellwall", ".git/hooks", ".mcp.json", ".claude", ".vscode/tasks.json", ".husky"} {
+	for _, want := range []string{".devcontainer", ".kennel", ".git/hooks", ".mcp.json", ".claude", ".vscode/tasks.json", ".husky"} {
 		if !contains(got, want) {
 			t.Errorf("default protected set missing %s: %v", want, got)
 		}
@@ -283,7 +283,7 @@ func TestProtectedSet(t *testing.T) {
 		t.Errorf("unprotect must be listed as a relaxation: %s", rel)
 	}
 	// A config copied from the spec's example (which lists the defaults) is still fully protected.
-	c2 := mustParse(t, "version: 1\nprotected_paths: [.devcontainer, .cellwall]\n", LayerProject)
+	c2 := mustParse(t, "version: 1\nprotected_paths: [.devcontainer, .kennel]\n", LayerProject)
 	if len(c2.ProtectedSet()) < len(DefaultProtected) {
 		t.Errorf("trimming the list must not weaken the defaults: %v", c2.ProtectedSet())
 	}

@@ -25,14 +25,14 @@ func TestLifecycle(t *testing.T) {
 	root := repoRoot(t)
 
 	// A static binary, as a release is: `up` builds the gateway image from this very file.
-	bin := filepath.Join(t.TempDir(), "cellwall")
+	bin := filepath.Join(t.TempDir(), "kennel")
 	if runtime.GOOS == "windows" {
 		bin += ".exe"
 	}
-	build := exec.Command("go", "build", "-trimpath", "-o", bin, filepath.Join(root, "cmd", "cellwall"))
+	build := exec.Command("go", "build", "-trimpath", "-o", bin, filepath.Join(root, "cmd", "kennel"))
 	build.Env = append(os.Environ(), "CGO_ENABLED=0")
 	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build cellwall: %v\n%s", err, out)
+		t.Fatalf("build kennel: %v\n%s", err, out)
 	}
 
 	ws := t.TempDir()
@@ -40,7 +40,7 @@ func TestLifecycle(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(ws, ".git", "hooks"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	env := append(os.Environ(), "CELLWALL_CONFIG_DIR="+t.TempDir())
+	env := append(os.Environ(), "KENNEL_CONFIG_DIR="+t.TempDir())
 
 	type result struct {
 		out, err string
@@ -61,7 +61,7 @@ func TestLifecycle(t *testing.T) {
 		if errors.As(err, &ee) {
 			code = ee.ExitCode()
 		} else if err != nil {
-			t.Fatalf("cellwall %s: %v", strings.Join(args, " "), err)
+			t.Fatalf("kennel %s: %v", strings.Join(args, " "), err)
 		}
 		return result{o.String(), e.String(), code}
 	}
@@ -110,7 +110,7 @@ func TestLifecycle(t *testing.T) {
 			t.Fatalf("an unlisted host must be refused with 403 before allow, got:\n%s", got)
 		}
 		r := must(cw("", "logs", "--denied"), "logs --denied")
-		if !strings.Contains(r.out, "example.org:443") || !strings.Contains(r.out, "cellwall allow example.org") {
+		if !strings.Contains(r.out, "example.org:443") || !strings.Contains(r.out, "kennel allow example.org") {
 			t.Fatalf("logs --denied should list the host and the command to allow it:\n%s", r.out)
 		}
 
@@ -182,8 +182,8 @@ func TestLifecycle(t *testing.T) {
 			t.Errorf("containers remain after down:\n%s", r.out)
 		}
 		// Session rules survive a restart of the sandbox: they live in the project's state.
-		if r := cw("", "shell", "--no-tty"); r.code == 0 || !strings.Contains(r.err, "cellwall up") {
-			t.Errorf("shell without a sandbox should fail and say `cellwall up`: %d %s", r.code, r.err)
+		if r := cw("", "shell", "--no-tty"); r.code == 0 || !strings.Contains(r.err, "kennel up") {
+			t.Errorf("shell without a sandbox should fail and say `kennel up`: %d %s", r.code, r.err)
 		}
 	})
 }

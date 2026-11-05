@@ -8,11 +8,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/middle-systems/cellwall/internal/safefs"
+	"github.com/middle-systems/kennel/internal/safefs"
 )
 
 // StateFile is where the seeding record lives, relative to the project root.
-const StateFile = ".cellwall/state/volume.json"
+const StateFile = ".kennel/state/volume.json"
 
 // State records how the workspace volume was seeded. Base is the host commit the agent's copy
 // started from (later: the commit last brought back with `fetch --apply`); bundles carry only
@@ -24,7 +24,7 @@ type State struct {
 }
 
 // ErrNotSeeded means the workspace volume has not been seeded from this repository yet.
-var ErrNotSeeded = errors.New("the workspace volume has not been seeded from this repository\n  next: run `cellwall up`, which seeds it")
+var ErrNotSeeded = errors.New("the workspace volume has not been seeded from this repository\n  next: run `kennel up`, which seeds it")
 
 // LoadState reads the seeding record.
 func LoadState(root string) (State, error) {
@@ -37,7 +37,7 @@ func LoadState(root string) (State, error) {
 	}
 	var s State
 	if err := json.Unmarshal(b, &s); err != nil || s.Base == "" {
-		return State{}, fmt.Errorf("%s is unreadable; delete it and run `cellwall up` to seed again (the volume keeps the agent's work)", StateFile)
+		return State{}, fmt.Errorf("%s is unreadable; delete it and run `kennel up` to seed again (the volume keeps the agent's work)", StateFile)
 	}
 	return s, nil
 }

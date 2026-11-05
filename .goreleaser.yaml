@@ -1,33 +1,33 @@
 # GoReleaser configuration. Releases are built by .github/workflows/release.yml on a tag push only;
 # nothing here publishes by itself. See docs/releasing.md.
 version: 2
-project_name: cellwall
+project_name: kennel
 
 before:
   hooks:
     # The Linux gateway binaries that macOS and Windows builds carry inside themselves (the host
     # binary cannot run in a Linux container). Static, same flags as the Linux release binaries.
-    - sh -c 'mkdir -p internal/gatewayimage/embedded && for a in amd64 arm64; do CGO_ENABLED=0 GOOS=linux GOARCH=$a go build -trimpath -ldflags "-s -w" -o internal/gatewayimage/embedded/cellwall-linux-$a ./cmd/cellwall; done'
+    - sh -c 'mkdir -p internal/gatewayimage/embedded && for a in amd64 arm64; do CGO_ENABLED=0 GOOS=linux GOARCH=$a go build -trimpath -ldflags "-s -w" -o internal/gatewayimage/embedded/kennel-linux-$a ./cmd/kennel; done'
 
 builds:
   # Linux builds the gateway image from themselves, so they embed nothing.
   - id: linux
-    main: ./cmd/cellwall
-    binary: cellwall
+    main: ./cmd/kennel
+    binary: kennel
     env: [CGO_ENABLED=0]
     goos: [linux]
     goarch: [amd64, arm64]
     flags: [-trimpath]
     ldflags: &ldflags
       - -s -w
-      - -X github.com/middle-systems/cellwall/internal/version.Version={{ .Version }}
-      - -X github.com/middle-systems/cellwall/internal/version.Commit={{ .ShortCommit }}
-      - -X github.com/middle-systems/cellwall/internal/version.Date={{ .CommitDate }}
+      - -X github.com/middle-systems/kennel/internal/version.Version={{ .Version }}
+      - -X github.com/middle-systems/kennel/internal/version.Commit={{ .ShortCommit }}
+      - -X github.com/middle-systems/kennel/internal/version.Date={{ .CommitDate }}
     mod_timestamp: "{{ .CommitTimestamp }}"
   # macOS and Windows carry the Linux gateway (build tag embedgw).
   - id: hosted
-    main: ./cmd/cellwall
-    binary: cellwall
+    main: ./cmd/kennel
+    binary: kennel
     env: [CGO_ENABLED=0]
     goos: [darwin, windows]
     goarch: [amd64, arm64]
@@ -42,7 +42,7 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
-    name_template: "cellwall_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: "kennel_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files: [LICENSE*, README.md, SECURITY.md, CHANGELOG.md]
 
 checksum:
@@ -74,16 +74,16 @@ release:
 # Package-manager manifests are generated but never pushed until the tap/bucket repositories exist
 # and the project name is settled.
 homebrew_casks:
-  - name: cellwall
+  - name: kennel
     ids: [default]
     skip_upload: true
-    homepage: https://github.com/middle-systems/cellwall
+    homepage: https://github.com/middle-systems/kennel
     description: Run coding agents in a sandbox with a policy-enforcing egress gateway
     repository: {owner: middle-systems, name: homebrew-tap}
 scoops:
-  - name: cellwall
+  - name: kennel
     ids: [default]
     skip_upload: true
-    homepage: https://github.com/middle-systems/cellwall
+    homepage: https://github.com/middle-systems/kennel
     description: Run coding agents in a sandbox with a policy-enforcing egress gateway
     repository: {owner: middle-systems, name: scoop-bucket}

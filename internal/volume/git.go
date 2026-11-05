@@ -1,10 +1,10 @@
 // Package volume implements workspace.mode=volume: the repository lives in a named volume inside
 // the agent's container, is seeded from the host repository, and the agent's commits come back
-// through `cellwall fetch`.
+// through `kennel fetch`.
 //
 // Nothing here trusts the agent's repository. Its commits are transferred as a git bundle, the
 // bundle is verified against the host history, objects are checked with fsck while fetching, and
-// they land only in refs/cellwall/* — never in a branch the host has checked out. Bringing them
+// they land only in refs/kennel/* — never in a branch the host has checked out. Bringing them
 // into the working tree is a separate, explicit step that stops at changes to files the host may
 // later execute (docs/decisions/0009).
 package volume

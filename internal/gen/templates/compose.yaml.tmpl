@@ -1,19 +1,19 @@
-# Sandbox topology for {{.Project}} (cellwall docs: architecture.md).
+# Sandbox topology for {{.Project}} (kennel docs: architecture.md).
 #
 #   agent   --sandbox (internal, host-isolated)-->  gateway  --egress-->  internet
 #
 # The agent has no route out: it is attached only to the `sandbox` network, and the only thing on
 # that network is the gateway, which enforces the policy and runs in a separate container the agent
-# cannot modify. Edit .cellwall/config.yaml and re-run `cellwall init` to change this file.
+# cannot modify. Edit .kennel/config.yaml and re-run `kennel init` to change this file.
 #
 # The per-session parts (policy, audit log, protected-path mounts, secrets) live in
-# {{.StateRel}}/compose.override.yaml, written by `cellwall prepare`. Always pass both files.
-name: cw-{{.Project}}
+# {{.StateRel}}/compose.override.yaml, written by `kennel prepare`. Always pass both files.
+name: kennel-{{.Project}}
 
 networks:
   sandbox:
     # internal: no route to the internet. gateway_mode_ipv4=isolated: the host takes no address on
-    # this bridge, so the agent cannot reach host services bound to 0.0.0.0 (cellwall docs: decisions/0001).
+    # this bridge, so the agent cannot reach host services bound to 0.0.0.0 (kennel docs: decisions/0001).
     internal: true
     driver_opts:
       com.docker.network.bridge.gateway_mode_ipv4: isolated
@@ -30,12 +30,12 @@ volumes:
 
 services:
   gateway:
-    image: ${CELLWALL_GATEWAY_IMAGE:-cellwall-gateway:local}
+    image: ${KENNEL_GATEWAY_IMAGE:-kennel-gateway:local}
     command:
       - "--policy"
-      - "/etc/cellwall/policy/policy.json"
+      - "/etc/kennel/policy/policy.json"
       - "--audit-dir"
-      - "/var/log/cellwall"
+      - "/var/log/kennel"
       - "--audit-max-size-mb"
       - "{{.Cfg.Gateway.AuditMaxSizeMB}}"
       - "--audit-max-files"
@@ -68,7 +68,7 @@ services:
 {{- end}}
 {{- end}}
 {{- end}}
-    user: "${CELLWALL_UID:-1000}:${CELLWALL_GID:-1000}"
+    user: "${KENNEL_UID:-1000}:${KENNEL_GID:-1000}"
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
@@ -80,13 +80,13 @@ services:
       # single-file mount pointing at the old inode and hot reload would silently never fire.
       - type: bind
         source: {{.StateEnv}}/policy
-        target: /etc/cellwall/policy
+        target: /etc/kennel/policy
         read_only: true
         bind:
           create_host_path: false
       - type: bind
         source: {{.StateEnv}}/audit
-        target: /var/log/cellwall
+        target: /var/log/kennel
         bind:
           create_host_path: false
 
@@ -95,8 +95,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        UID: "${CELLWALL_UID:-1000}"
-        GID: "${CELLWALL_GID:-1000}"
+        UID: "${KENNEL_UID:-1000}"
+        GID: "${KENNEL_GID:-1000}"
     image: {{.ImageName}}
     networks: [sandbox]
     depends_on:
@@ -116,7 +116,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     pids_limit: {{.Cfg.Hardening.PidsLimit}}
     mem_limit: {{.Cfg.Hardening.Memory}}
-    cpus: ${CELLWALL_CPUS:-{{.Cfg.Hardening.CPUs}}}
+    cpus: ${KENNEL_CPUS:-{{.Cfg.Hardening.CPUs}}}
 {{- if .Cfg.Hardening.Runtime}}
     runtime: {{.Cfg.Hardening.Runtime | q}}
 {{- end}}
@@ -136,7 +136,7 @@ services:
           create_host_path: false
 {{- else}}
       # workspace.mode=volume: the agent works on its own copy of the repository in this named
-      # volume. `cellwall up` seeds it from your repository; `cellwall fetch` brings commits back.
+      # volume. `kennel up` seeds it from your repository; `kennel fetch` brings commits back.
       # Your working tree is not mounted, so it is not exposed to the agent at all.
       - type: volume
         source: workspace

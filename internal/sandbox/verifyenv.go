@@ -17,14 +17,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/auditlog"
-	"github.com/middle-systems/cellwall/internal/compose"
-	"github.com/middle-systems/cellwall/internal/gen"
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/policyedit"
-	"github.com/middle-systems/cellwall/internal/prepare"
-	"github.com/middle-systems/cellwall/internal/verify"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/auditlog"
+	"github.com/middle-systems/kennel/internal/compose"
+	"github.com/middle-systems/kennel/internal/gen"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/policyedit"
+	"github.com/middle-systems/kennel/internal/prepare"
+	"github.com/middle-systems/kennel/internal/verify"
 )
 
 // VerifyEnv connects the escape suite to a running sandbox. Both containers must be up: verify
@@ -37,10 +37,10 @@ func VerifyEnv(ctx context.Context, e Env, root string, mutate bool) (*verify.En
 	for _, svc := range []string{compose.GatewayService, compose.AgentService} {
 		up, err := Running(ctx, e, p, svc)
 		if err != nil {
-			return nil, fmt.Errorf("could not query the sandbox: %s\n  next: run `cellwall doctor`", Brief(err))
+			return nil, fmt.Errorf("could not query the sandbox: %s\n  next: run `kennel doctor`", Brief(err))
 		}
 		if !up {
-			return nil, fmt.Errorf("the %s container is not running, so there is nothing to verify\n  next: run `cellwall up`, then `cellwall verify`", svc)
+			return nil, fmt.Errorf("the %s container is not running, so there is nothing to verify\n  next: run `kennel up`, then `kennel verify`", svc)
 		}
 	}
 
@@ -107,7 +107,7 @@ func VerifyEnv(ctx context.Context, e Env, root string, mutate bool) (*verify.En
 func readEffective(root string) (*policy.Compiled, error) {
 	b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(gen.StateDirRel), "policy", "policy.json")) //nolint:gosec // fixed location in the project's state dir
 	if err != nil {
-		return nil, fmt.Errorf("no prepared policy found: %w\n  next: run `cellwall up`", err)
+		return nil, fmt.Errorf("no prepared policy found: %w\n  next: run `kennel up`", err)
 	}
 	parsed, err := policy.Parse("policy.json", b)
 	if err != nil {
@@ -122,7 +122,7 @@ func readEffective(root string) (*policy.Compiled, error) {
 func allowTemp(ctx context.Context, e Env, root, auditDir string, hosts []string) (func(), time.Duration, error) {
 	wrote := time.Now()
 	res, err := Edit(ctx, e, root, EditOptions{
-		Edit: policyedit.Edit{Action: policy.ActionAllow, Hosts: hosts, Note: "cellwall verify (temporary)"},
+		Edit: policyedit.Edit{Action: policy.ActionAllow, Hosts: hosts, Note: "kennel verify (temporary)"},
 		Wait: 10 * time.Second,
 	})
 	undo := func() {

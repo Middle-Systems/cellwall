@@ -1,9 +1,9 @@
-# cellwall:generated sha256=46c7f203cab5bfa8e1ed67d83360ad123eb3b8c6c9e901b55b57f87b712c2907
+# kennel:generated sha256=581e069fb25109e441639355400cbfef3ccca274323755631dc329042f459ab6
 # Agent image for rust-axum.
 # Built on the HOST network (not sandboxed). At run time the container is attached only to the
 # internal `sandbox` network, so it reaches the internet only through the gateway.
-# Every base and toolchain image is pinned by digest (they move only when you upgrade cellwall and re-run `cellwall init`).
-# Edit .cellwall/config.yaml and re-run `cellwall init`; hand edits to this file are detected and kept.
+# Every base and toolchain image is pinned by digest (they move only when you upgrade kennel and re-run `kennel init`).
+# Edit .kennel/config.yaml and re-run `kennel init`; hand edits to this file are detected and kept.
 
 ARG UID=1000
 ARG GID=1000
@@ -65,10 +65,10 @@ RUN set -eux; \
 RUN install -d -o "${UID}" -g "${GID}" /workspace '/workspace/target' \
  && install -d -o "${UID}" -g "${GID}" /home/dev/.cache
 
-COPY --chmod=0755 entrypoint.sh /usr/local/bin/cellwall-entrypoint
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/kennel-entrypoint
 
 USER dev
 WORKDIR /workspace
 ENV HOME=/home/dev
-ENTRYPOINT ["/usr/local/bin/cellwall-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/kennel-entrypoint"]
 CMD ["sleep", "infinity"]

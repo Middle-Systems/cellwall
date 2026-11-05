@@ -12,7 +12,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/middle-systems/cellwall/internal/config"
+	"github.com/middle-systems/kennel/internal/config"
 )
 
 var update = flag.Bool("update", false, "rewrite golden files in testdata/golden")

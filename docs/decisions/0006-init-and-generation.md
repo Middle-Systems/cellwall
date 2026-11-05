@@ -6,11 +6,11 @@ Status: accepted.
 
 Every file `init` writes is one of three kinds.
 
-- **Generated** (`.devcontainer/*`): carries `cellwall:generated sha256=<hash of the body>`. The
+- **Generated** (`.devcontainer/*`): carries `kennel:generated sha256=<hash of the body>`. The
   hash lets `init` distinguish *pristine* (safe to regenerate), *edited* (kept, reported) and
   *foreign* (no stamp: never touched without `--force`). Output is deterministic (no timestamps,
   sorted maps), which is what makes re-running `init` a no-op and the golden tests meaningful.
-- **Seed** (`.cellwall/config.yaml`, `.cellwall/policy.yaml`): written once and never overwritten,
+- **Seed** (`.kennel/config.yaml`, `.kennel/policy.yaml`): written once and never overwritten,
   not even by `--force`. They hold the user's security decisions.
 - **Verbatim** (the Claude Code npm lockfile): copied byte for byte so the integrity hashes in it
   are exactly the reviewed ones.
@@ -21,8 +21,8 @@ All-or-nothing: if any file conflicts, nothing is written and the message names 
 
 ## Existing devcontainers
 
-An existing `.devcontainer/` is never clobbered. `--merge` leaves it untouched and writes cellwall
-under `.devcontainer/cellwall/` (`devcontainer.dir` records the choice).
+An existing `.devcontainer/` is never clobbered. `--merge` leaves it untouched and writes kennel
+under `.devcontainer/kennel/` (`devcontainer.dir` records the choice).
 
 ## Why the agent is installed from an npm lockfile
 
@@ -41,8 +41,8 @@ spike S4). Symlinked protected paths are warned about, not followed.
 
 ## Gateway state
 
-Policy, audit log and the override live in `.cellwall/state/` on the host. The agent sees the
-workspace bind mount, so a tmpfs is mounted over `/workspace/.cellwall/state` in the agent only.
+Policy, audit log and the override live in `.kennel/state/` on the host. The agent sees the
+workspace bind mount, so a tmpfs is mounted over `/workspace/.kennel/state` in the agent only.
 The gateway runs as the invoking user's uid/gid so it can write the audit directory in bind mode.
 
 ## Caches

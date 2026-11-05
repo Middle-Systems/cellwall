@@ -91,7 +91,7 @@ func TestKilledChildIsReportedAs128PlusSignal(t *testing.T) {
 func TestMissingDockerIsActionable(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	_, err := runDocker(context.Background(), Streams{}, []string{"x"})
-	if err == nil || !strings.Contains(err.Error(), "cellwall doctor") {
+	if err == nil || !strings.Contains(err.Error(), "kennel doctor") {
 		t.Fatalf("got %v", err)
 	}
 }

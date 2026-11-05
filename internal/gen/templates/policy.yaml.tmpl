@@ -1,8 +1,8 @@
-# cellwall egress policy: which hosts the agent may reach. Everything else is denied.
+# kennel egress policy: which hosts the agent may reach. Everything else is denied.
 # Committed to the repository and read-only inside the sandbox. Reference: docs/policy.md.
 #
 # The agent's own hosts (api.anthropic.com, ...) are added automatically from `agent:` in
-# config.yaml; they are not listed here. `cellwall prepare` prints the effective policy.
+# config.yaml; they are not listed here. `kennel prepare` prints the effective policy.
 version: 1
 
 # Reviewed, exact-host allowlists for the package registries of the stacks detected in this repo.

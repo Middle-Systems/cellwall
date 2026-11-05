@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/middle-systems/cellwall/internal/compose"
-	"github.com/middle-systems/cellwall/internal/gen"
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/prepare"
-	"github.com/middle-systems/cellwall/internal/volume"
+	"github.com/middle-systems/kennel/internal/compose"
+	"github.com/middle-systems/kennel/internal/gen"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/prepare"
+	"github.com/middle-systems/kennel/internal/volume"
 )
 
 // Container is one service's state.
@@ -53,7 +53,7 @@ type VolumeStatus struct {
 	Dirty     int    `json:"uncommitted_files"`
 }
 
-// StatusReport is what `cellwall status` shows.
+// StatusReport is what `kennel status` shows.
 type StatusReport struct {
 	Project       string        `json:"project"`
 	Containers    []Container   `json:"containers"`
@@ -100,7 +100,7 @@ func Status(ctx context.Context, e Env, root string) (*StatusReport, error) {
 		r.Warnings = append(r.Warnings, "the sandbox network "+r.Network.Name+" was not found")
 	}
 	if r.Network.Found && (!r.Network.Internal || !r.Network.Isolated) {
-		r.Warnings = append(r.Warnings, "the sandbox network is NOT fully isolated (internal="+boolStr(r.Network.Internal)+", host_isolated="+boolStr(r.Network.Isolated)+"); run `cellwall down` then `cellwall up`")
+		r.Warnings = append(r.Warnings, "the sandbox network is NOT fully isolated (internal="+boolStr(r.Network.Internal)+", host_isolated="+boolStr(r.Network.Isolated)+"); run `kennel down` then `kennel up`")
 	}
 
 	// The policy on disk, as `prepare` last wrote it.
@@ -114,7 +114,7 @@ func Status(ctx context.Context, e Env, root string) (*StatusReport, error) {
 		}
 	}
 	if r.Policy.OnDisk == "" {
-		r.Warnings = append(r.Warnings, "no policy has been prepared yet; run `cellwall prepare` (or `cellwall up`)")
+		r.Warnings = append(r.Warnings, "no policy has been prepared yet; run `kennel prepare` (or `kennel up`)")
 	}
 	r.Relaxations = append(r.Relaxations, prepare.SessionRules(root)...)
 
@@ -128,7 +128,7 @@ func Status(ctx context.Context, e Env, root string) (*StatusReport, error) {
 				r.Warnings = append(r.Warnings, "the gateway is enforcing a different policy than the one on disk; see `docker compose logs gateway` (a rejected edit keeps the last good policy)")
 			}
 		} else {
-			r.Warnings = append(r.Warnings, "the gateway is running but did not answer: "+Brief(err)+" (an older gateway image? remove it with `docker rmi cellwall-gateway:local` and run `cellwall up`)")
+			r.Warnings = append(r.Warnings, "the gateway is running but did not answer: "+Brief(err)+" (an older gateway image? remove it with `docker rmi kennel-gateway:local` and run `kennel up`)")
 		}
 	}
 	return r, nil

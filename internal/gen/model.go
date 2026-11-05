@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/detect"
-	"github.com/middle-systems/cellwall/internal/pins"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/detect"
+	"github.com/middle-systems/kennel/internal/pins"
 )
 
 // Inputs is everything generation depends on. Rendering is a pure function of it.
@@ -33,7 +33,7 @@ func LayoutFor(c *config.Config) Layout {
 }
 
 // StateDirRel is where `prepare` writes per-session gateway state, relative to the project root.
-const StateDirRel = ".cellwall/state"
+const StateDirRel = ".kennel/state"
 
 // CacheVolume is a workspace directory kept on a named volume.
 type CacheVolume struct {
@@ -58,7 +58,7 @@ type Data struct {
 
 	Claude        bool
 	ClaudeVersion string
-	ClaudePinned  bool // a cellwall-held lockfile exists for ClaudeVersion
+	ClaudePinned  bool // a kennel-held lockfile exists for ClaudeVersion
 
 	AptPackages []string
 	Caches      []CacheVolume
@@ -85,7 +85,7 @@ func NewData(in Inputs) (*Data, error) {
 	if project == "" {
 		return nil, fmt.Errorf("gen: config has no project name")
 	}
-	d := &Data{Cfg: c, Project: project, Layout: LayoutFor(c), Pins: pins.All(), ImageName: "cw-" + project + "-agent:local"}
+	d := &Data{Cfg: c, Project: project, Layout: LayoutFor(c), Pins: pins.All(), ImageName: "kennel-" + project + "-agent:local"}
 
 	// Stacks.
 	if c.Stacks.Auto {
@@ -288,7 +288,7 @@ func agentEnv(d *Data) []KV {
 		env["GIT_AUTHOR_EMAIL"], env["GIT_COMMITTER_EMAIL"] = c.Git.UserEmail, c.Git.UserEmail
 	}
 	if d.SecretsEnv != "" {
-		env["CELLWALL_SECRETS_ENV"] = d.SecretsEnv
+		env["KENNEL_SECRETS_ENV"] = d.SecretsEnv
 	}
 	for k, v := range c.Agent.Env { // validated: cannot override anything set above
 		env[k] = v

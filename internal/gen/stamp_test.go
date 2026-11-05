@@ -18,7 +18,7 @@ func TestStampRoundTrip(t *testing.T) {
 		}
 	}
 	// The shebang stays on line one.
-	if s := Stamp("#", "#!/bin/sh\necho hi\n"); !strings.HasPrefix(s, "#!/bin/sh\n# cellwall:generated sha256=") {
+	if s := Stamp("#", "#!/bin/sh\necho hi\n"); !strings.HasPrefix(s, "#!/bin/sh\n# kennel:generated sha256=") {
 		t.Errorf("shebang moved: %q", s)
 	}
 }
@@ -35,7 +35,7 @@ func TestInspectDetectsEditsAndForeignFiles(t *testing.T) {
 	if Inspect([]byte(strings.Replace(s, "sha256=", "sha256=0", 1))) == Pristine {
 		t.Error("a malformed marker must not count as pristine")
 	}
-	for _, foreign := range []string{"", "FROM debian\n", "# just a comment\n", "# cellwall:generated sha256=short\nx\n", "x\ny\n# cellwall:generated sha256=" + strings.Repeat("a", 64) + "\n"} {
+	for _, foreign := range []string{"", "FROM debian\n", "# just a comment\n", "# kennel:generated sha256=short\nx\n", "x\ny\n# kennel:generated sha256=" + strings.Repeat("a", 64) + "\n"} {
 		if got := Inspect([]byte(foreign)); got != Unstamped {
 			t.Errorf("%q should be unstamped, got %v", foreign, got)
 		}

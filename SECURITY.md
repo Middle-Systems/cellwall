@@ -1,17 +1,17 @@
 # Security policy
 
-cellwall is a security tool, so reports about its isolation claims are the most valuable kind.
+kennel is a security tool, so reports about its isolation claims are the most valuable kind.
 
 ## Reporting a vulnerability
 
 Please **do not open a public issue**. Report privately through GitHub's "Report a vulnerability"
-(Security advisories) on this repository. Include the engine and version, OS, your `cellwall
-version`, and the smallest reproduction you can, ideally a failing `cellwall verify` check.
+(Security advisories) on this repository. Include the engine and version, OS, your `kennel
+version`, and the smallest reproduction you can, ideally a failing `kennel verify` check.
 
 We aim to acknowledge reports within 3 working days. Coordinated disclosure: we will agree a
 timeline with you and credit you unless you prefer otherwise.
 
-> The disclosure contact must be confirmed by the maintainers before the first public release.
+> Maintainers: private vulnerability reporting must be enabled in the repository settings before the first public release.
 
 ## Verifying releases
 

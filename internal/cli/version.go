@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/version"
+	"github.com/middle-systems/kennel/internal/version"
 )
 
 func newVersionCmd(g *globalFlags) *cobra.Command {
@@ -20,7 +20,7 @@ func newVersionCmd(g *globalFlags) *cobra.Command {
 				enc.SetIndent("", "  ")
 				return enc.Encode(info)
 			}
-			writef(cmd.OutOrStdout(), "cellwall %s (commit %s, built %s, %s %s/%s)\n",
+			writef(cmd.OutOrStdout(), "kennel %s (commit %s, built %s, %s %s/%s)\n",
 				info.Version, info.Commit, info.Date, info.Go, info.OS, info.Arch)
 			return nil
 		},

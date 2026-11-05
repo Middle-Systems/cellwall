@@ -1,4 +1,4 @@
-module github.com/middle-systems/cellwall
+module github.com/middle-systems/kennel
 
 go 1.26.9
 

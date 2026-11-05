@@ -14,7 +14,7 @@ import (
 
 // RefPrefix is where the agent's branches land on the host. Nothing outside this namespace is ever
 // written by `fetch`.
-const RefPrefix = "refs/cellwall/"
+const RefPrefix = "refs/kennel/"
 
 // alwaysGated are paths that run on the host or in its tooling when someone later checks out,
 // commits or builds, whether or not they are in protected_paths. Changes to them are held for
@@ -48,7 +48,7 @@ func (b BranchReport) Protected() []Change {
 	return out
 }
 
-// FetchResult is what `cellwall fetch` found.
+// FetchResult is what `kennel fetch` found.
 type FetchResult struct {
 	Nothing    bool           `json:"nothing_new"`
 	Branches   []BranchReport `json:"branches"`
@@ -61,7 +61,7 @@ type FetchOptions struct {
 	Protected []string // config.ProtectedSet()
 }
 
-// Fetch brings the agent's new commits into refs/cellwall/* on the host and reports what they
+// Fetch brings the agent's new commits into refs/kennel/* on the host and reports what they
 // change. It never touches the host's branches, index or working tree.
 func Fetch(ctx context.Context, ag Agent, repo Repo, root string, o FetchOptions) (*FetchResult, error) {
 	lay := o.Layout
@@ -77,7 +77,7 @@ func Fetch(ctx context.Context, ag Agent, repo Repo, root string, o FetchOptions
 		res.AgentDirty = len(splitNUL(status))
 	}
 
-	tmp, err := os.CreateTemp("", "cellwall-fetch-*.bundle")
+	tmp, err := os.CreateTemp("", "kennel-fetch-*.bundle")
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func Fetch(ctx context.Context, ag Agent, repo Repo, root string, o FetchOptions
 	// The bundle must apply to what the host already has; a bundle that does not is either stale
 	// (the host history moved) or not what we asked for.
 	if _, err := repo.hostGit(ctx, nil, nil, "bundle", "verify", bundlePath); err != nil {
-		return nil, fmt.Errorf("the agent's commits do not apply to this repository: %w\n  next: the host history changed since the volume was seeded; fetch from a fresh volume (`cellwall down --volumes` after saving what you need) or merge manually", err)
+		return nil, fmt.Errorf("the agent's commits do not apply to this repository: %w\n  next: the host history changed since the volume was seeded; fetch from a fresh volume (`kennel down --volumes` after saving what you need) or merge manually", err)
 	}
 
 	if err := importBundle(ctx, repo, bundlePath, st.Base); err != nil {
@@ -270,7 +270,7 @@ func Apply(ctx context.Context, repo Repo, root, branch string, protected []stri
 	ref := RefPrefix + branch
 	sha, err := repo.out(ctx, "rev-parse", "--verify", "-q", ref+"^{commit}")
 	if err != nil || sha == "" {
-		return nil, fmt.Errorf("no fetched branch %q (run `cellwall fetch` first; fetched branches: %s)", branch, strings.Join(fetchedNames(ctx, repo), ", "))
+		return nil, fmt.Errorf("no fetched branch %q (run `kennel fetch` first; fetched branches: %s)", branch, strings.Join(fetchedNames(ctx, repo), ", "))
 	}
 	br, err := report(ctx, repo, ref, sha, gatedSet(protected))
 	if err != nil {
@@ -282,7 +282,7 @@ func Apply(ctx context.Context, repo Repo, root, branch string, protected []stri
 	if st, err := repo.out(ctx, "status", "--porcelain"); err != nil {
 		return nil, err
 	} else if st != "" {
-		return nil, errors.New("your working tree has uncommitted changes, so nothing was merged\n  next: commit or stash them, then re-run `cellwall fetch --apply`")
+		return nil, errors.New("your working tree has uncommitted changes, so nothing was merged\n  next: commit or stash them, then re-run `kennel fetch --apply`")
 	}
 	if _, err := repo.hostGit(ctx, nil, nil, "merge", "--ff-only", "--quiet", ref); err != nil {
 		return nil, fmt.Errorf("%w\n  next: your branch has moved on since the volume was seeded, so this is not a fast-forward; merge it yourself: git merge %s", err, ref)

@@ -1,4 +1,4 @@
-// Package auditlog reads the gateway's audit log (JSON Lines, rotated) for `cellwall logs`.
+// Package auditlog reads the gateway's audit log (JSON Lines, rotated) for `kennel logs`.
 package auditlog
 
 import (
@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/proxy"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/proxy"
 )
 
 // Filter selects records.
@@ -277,7 +277,7 @@ func suggestion(d Denied) (cmd, why string) {
 	case proxy.ReasonIPLiteral:
 		return "", "IP addresses are never allowed; the program should use a hostname"
 	case proxy.ReasonBlockedAddress:
-		return "", "the name resolves to a private, loopback or metadata address, which cellwall blocks"
+		return "", "the name resolves to a private, loopback or metadata address, which kennel blocks"
 	case proxy.ReasonSNIMismatch, proxy.ReasonNoSNI, proxy.ReasonECH:
 		return "", "the TLS handshake did not match the requested host; allowing the host does not change that"
 	case proxy.ReasonBadTarget, proxy.ReasonNotProxy, proxy.ReasonBadScheme, proxy.ReasonUpgrade:
@@ -285,7 +285,7 @@ func suggestion(d Denied) (cmd, why string) {
 	case proxy.ReasonRateLimited, proxy.ReasonAtCapacity, proxy.ReasonSuspicious:
 		return "", "refused by a safety limit (" + d.Reason + "), not by the allowlist"
 	case policy.ReasonExplicitDeny:
-		return "", "an explicit deny rule applies (" + d.Rule + "); edit .cellwall/policy.yaml to change it"
+		return "", "an explicit deny rule applies (" + d.Rule + "); edit .kennel/policy.yaml to change it"
 	case policy.ReasonHTTPNotAllow:
 		return "", "plain HTTP is refused; use https"
 	case proxy.ReasonResolveFailed, proxy.ReasonDialFailed:
@@ -294,7 +294,7 @@ func suggestion(d Denied) (cmd, why string) {
 	if d.Host == "(unknown)" || strings.ContainsAny(d.Host, " /") {
 		return "", ""
 	}
-	cmd = "cellwall allow " + d.Host
+	cmd = "kennel allow " + d.Host
 	if d.Port != 0 && d.Port != 443 {
 		cmd += " --port " + strconv.Itoa(d.Port)
 	}

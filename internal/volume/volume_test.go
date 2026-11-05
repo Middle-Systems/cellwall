@@ -89,7 +89,7 @@ func newWorld(t *testing.T) *world {
 	w.lay = Layout{Work: w.work, Bundle: filepath.Join(base, "seed.bundle")}
 	w.repo = Repo{Dir: w.host}
 	gitIn(t, w.host, "init", "-q", "-b", "main")
-	write(t, w.host, ".gitignore", "node_modules/\n*.log\n.cellwall/state/\n", 0o644)
+	write(t, w.host, ".gitignore", "node_modules/\n*.log\n.kennel/state/\n", 0o644)
 	write(t, w.host, "app.js", "console.log('v1')\n", 0o644)
 	write(t, w.host, "run.sh", "#!/bin/sh\necho hi\n", 0o755)
 	write(t, w.host, "old.txt", "old\n", 0o644)
@@ -270,7 +270,7 @@ func TestProtectedAndAlwaysGatedPathsAreFlaggedAndHoldApply(t *testing.T) {
 	w.agentGit("add", "-A")
 	w.agentGit("commit", "-q", "-m", "sneaky")
 
-	r := w.fetch(".devcontainer", ".cellwall")
+	r := w.fetch(".devcontainer", ".kennel")
 	got := map[string]bool{}
 	for _, c := range r.Branches[0].Changes {
 		got[c.Path] = c.Protected
@@ -441,7 +441,7 @@ func TestSafeRelRejectsEscapes(t *testing.T) {
 
 func TestMissingSeedingRecordPointsAtUp(t *testing.T) {
 	_, err := LoadState(t.TempDir())
-	if !errors.Is(err, ErrNotSeeded) || !strings.Contains(err.Error(), "cellwall up") {
+	if !errors.Is(err, ErrNotSeeded) || !strings.Contains(err.Error(), "kennel up") {
 		t.Fatalf("got %v", err)
 	}
 }

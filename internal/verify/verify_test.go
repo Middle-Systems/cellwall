@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/policy"
 )
 
 // world is a scriptable sandbox. The zero value is a healthy, correctly configured one; each test
@@ -75,7 +75,7 @@ func (w *world) env(t *testing.T) *Env {
 		t.Fatal(err)
 	}
 	if w.protected == nil {
-		w.protected = []string{".cellwall", ".devcontainer", ".git/hooks"}
+		w.protected = []string{".kennel", ".devcontainer", ".git/hooks"}
 	}
 	if w.ports == nil {
 		w.ports = []int{5173}
@@ -180,7 +180,7 @@ func (w *world) proxy(arg string) Out {
 		host := strings.Split(strings.TrimPrefix(target, "http://"), ":")[0]
 		host = strings.TrimSuffix(host, "/")
 		isGet := strings.HasPrefix(raw, "GET ")
-		p := proxied{Status: 403, Reason: "default-deny", Line: "HTTP/1.1 403 Forbidden", Body: "cellwall: not in the allowlist.\nTo allow it for this session: cellwall allow x"}
+		p := proxied{Status: 403, Reason: "default-deny", Line: "HTTP/1.1 403 Forbidden", Body: "kennel: not in the allowlist.\nTo allow it for this session: kennel allow x"}
 		switch {
 		case strings.HasSuffix(host, ".invalid") && strings.HasPrefix(host, "reload-"):
 			if w.freshStatus != 0 {
@@ -497,7 +497,7 @@ func TestVolumeModeChecksIsolationInsteadOfReadOnlyMounts(t *testing.T) {
 	w := &world{}
 	e, created := volumeEnv(t, w, false, false)
 	rs := Run(context.Background(), e, []string{"protected-paths"})
-	if rs[0].Status != Pass || !strings.Contains(rs[0].Detail, "cellwall fetch") {
+	if rs[0].Status != Pass || !strings.Contains(rs[0].Detail, "kennel fetch") {
 		t.Fatalf("%+v", rs[0])
 	}
 	if len(*created) != 1 || !strings.HasSuffix((*created)[0], "-host") {

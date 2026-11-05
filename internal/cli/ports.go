@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/sandbox"
+	"github.com/middle-systems/kennel/internal/sandbox"
 )
 
 func newPortsCmd(g *globalFlags) *cobra.Command {
@@ -126,7 +126,7 @@ func changePorts(cmd *cobra.Command, g *globalFlags, add, rm []int) error {
 		if res.GatewayReset {
 			writef(w, "the gateway was recreated; in-flight proxy connections were dropped, the agent was not touched.\n")
 		} else {
-			writef(w, "the sandbox is not running; this takes effect at the next `cellwall up`.\n")
+			writef(w, "the sandbox is not running; this takes effect at the next `kennel up`.\n")
 		}
 	}
 	for _, x := range res.Warnings {

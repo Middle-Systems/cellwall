@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# S9: hot reload depends on the gateway seeing policy updates. Editors and the cellwall CLI replace
+# S9: hot reload depends on the gateway seeing policy updates. Editors and the kennel CLI replace
 # files atomically (write temp + rename), which swaps the inode. A single-file bind mount keeps
 # pointing at the OLD inode; a directory bind mount sees the new file. Verify, then design around it.
 source "$(dirname "$0")/lib.sh"

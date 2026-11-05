@@ -1,16 +1,16 @@
-// cellwall:generated sha256=4878f950af8fab2745bdf942c86d9d33da0512e292fbef675aa4708fecc559b9
+// kennel:generated sha256=3684748c636a66e871b65f22de66e60589dd1a322c9d2a475e7379da31e59322
 {
-  "name": "cellwall: empty",
-  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  "name": "kennel: empty",
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
   // (policy, protected-path mounts, secrets); it must exist before the container starts.
   "dockerComposeFile": [
     "compose.yaml",
-    "../.cellwall/state/compose.override.yaml"
+    "../.kennel/state/compose.override.yaml"
   ],
   "service": "agent",
   "runServices": ["gateway", "agent"],
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
   "shutdownAction": "stopCompose",
-  "initializeCommand": ["cellwall", "prepare"]
+  "initializeCommand": ["kennel", "prepare"]
 }

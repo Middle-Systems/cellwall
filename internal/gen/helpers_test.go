@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/detect"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/detect"
 )
 
 func fixtureDir(t *testing.T, name string) string {

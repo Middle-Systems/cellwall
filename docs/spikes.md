@@ -71,7 +71,7 @@ Caveat: tested for UDP/TCP 53 only; DoT/DoH are just TCP and are covered by S1's
 ## S4 — protected paths (`spikes/s4_protected_paths.sh`), Linux only
 
 Works: read-only nested bind mounts block create/modify/delete under `.git/hooks`,
-`.devcontainer`, `.cellwall`, and a file-level ro mount on `.mcp.json`; `mv`-ing a *mount point*
+`.devcontainer`, `.kennel`, and a file-level ro mount on `.mcp.json`; `mv`-ing a *mount point*
 fails; remount/umount fail without `CAP_SYS_ADMIN`.
 
 **Hole found:** a ro submount does not stop its *parent* being renamed. Without mitigation,
@@ -115,16 +115,16 @@ Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5
 - **Host placeholders:** mounting a volume at a path that does not exist in the bind-mounted repo
   makes Docker create it **in the user's repository, owned by root**, which breaks a later
   host-side `npm install`/`cargo build` with `EACCES`. A directory that already exists keeps its
-  owner. `cellwall prepare` therefore pre-creates cache directories as the invoking user.
-- **Hiding gateway state:** a `tmpfs` mounted at `/workspace/.cellwall/state`, inside the read-only
-  `.cellwall` bind mount, hides the state directory (policy, audit) from the agent completely, and
+  owner. `kennel prepare` therefore pre-creates cache directories as the invoking user.
+- **Hiding gateway state:** a `tmpfs` mounted at `/workspace/.kennel/state`, inside the read-only
+  `.kennel` bind mount, hides the state directory (policy, audit) from the agent completely, and
   the agent cannot write into it either (the tmpfs is root-owned `0755`). Nothing reaches the host.
 
 ## Pending spikes
 
 - **S5 on Windows, second run (Docker Desktop 4.92.0, Engine 29.8.0, Git Bash, after the script
   fixes): DNS no-leak yes, publish via gateway yes, read-only nested mounts yes, host reachability
-  n/a (engine in a VM; covered by `cellwall verify`), nested mounts (S10) 10 of 11 pass.** The one
+  n/a (engine in a VM; covered by `kennel verify`), nested mounts (S10) 10 of 11 pass.** The one
   difference is real: the `tmpfs` that hides the state directory is world-writable on Docker
   Desktop (the agent user could write scratch files into it) but root-owned 0755 on Docker Engine
   29.6. Nothing reaches the host either way (the spike's host-side checks pass) and it is memory
@@ -137,7 +137,7 @@ Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5
   the Windows daemon cannot resolve) did not exist, so controls failed and results read NO/ERROR.
   Only DNS no-leak (yes) and the read-only evasion checks inside s4 (all PASS) ran meaningfully.
   The scripts now use portable helpers (`spikes/lib.sh`), and the host-reachability spike is
-  reported n/a on engines that run in a VM; that claim is covered there by `cellwall verify`
+  reported n/a on engines that run in a VM; that claim is covered there by `kennel verify`
   (check 10). A re-run is needed.
 - **S5 engine matrix:** run `spikes/s5_engine_matrix.sh` on each engine (it runs
   `s1b_host_reachability.sh`, `s2_dns.sh`, `s3_ports.sh`, `s4_protected_paths.sh` and
@@ -166,7 +166,7 @@ Added during M2. Linux/Docker only; Docker Desktop's file sharing may differ (S5
 
   The agent worked normally with the two denied hosts blocked. What they are for (probably an
   update check and a plugin or release lookup) is not established from this log; the preset
-  stays as it is, and `cellwall logs --denied` lists them with the allow command for anyone who
+  stays as it is, and `kennel logs --denied` lists them with the allow command for anyone who
   wants them.
 
   Also seen: long-lived tunnels to `api.anthropic.com` and `platform.claude.com` were closed by

@@ -8,7 +8,7 @@ docker network create --internal -o com.docker.network.bridge.gateway_mode_ipv4=
   && defer "docker network rm $SANDBOX"
 docker network create "$EGRESS" >/dev/null && defer "docker network rm $EGRESS"
 
-WWW="$(mktemp -d)"; echo cellwall-spike-ok >"$WWW/index.html"; defer "rm -rf $WWW"
+WWW="$(mktemp -d)"; echo kennel-spike-ok >"$WWW/index.html"; defer "rm -rf $WWW"
 docker run -d --name "${RUN_ID}-agent" --network "$SANDBOX" --network-alias agent \
   -v "$WWW:/www:ro" "$IMAGE" httpd -f -p 5173 -h /www >/dev/null && defer "docker rm -f ${RUN_ID}-agent"
 
@@ -35,7 +35,7 @@ sleep 2
 # Publishing must work once the container also has a non-internal network attached.
 body="$(http_get "http://127.0.0.1:${PORT_B}/" 2>/dev/null || true)"
 case "$body" in
-  *cellwall-spike-ok*) result PASS "B: host 127.0.0.1:$PORT_B reaches agent through gateway forwarder" ;;
+  *kennel-spike-ok*) result PASS "B: host 127.0.0.1:$PORT_B reaches agent through gateway forwarder" ;;
   *) result FAIL "B: forward path failed (body='${body:0:80}')"
      docker port "${RUN_ID}-gateway"; docker logs "${RUN_ID}-gateway" 2>&1 | tail -3 ;;
 esac

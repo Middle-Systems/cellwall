@@ -1,16 +1,16 @@
-// cellwall:generated sha256=bc18d335d920aaa5690fba55e4a400da7b1b37bab78f482288704857aa6961ac
+// kennel:generated sha256=890e8121012f8472a2618008f8a9da7d676a4c39b95724b73eb2fac95db7a52c
 {
-  "name": "cellwall: rust-axum",
-  // The compose files wire the agent to the gateway. The second one is written by `cellwall prepare`
+  "name": "kennel: rust-axum",
+  // The compose files wire the agent to the gateway. The second one is written by `kennel prepare`
   // (policy, protected-path mounts, secrets); it must exist before the container starts.
   "dockerComposeFile": [
     "compose.yaml",
-    "../.cellwall/state/compose.override.yaml"
+    "../.kennel/state/compose.override.yaml"
   ],
   "service": "agent",
   "runServices": ["gateway", "agent"],
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
   "shutdownAction": "stopCompose",
-  "initializeCommand": ["cellwall", "prepare"]
+  "initializeCommand": ["kennel", "prepare"]
 }

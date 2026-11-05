@@ -6,14 +6,14 @@ import (
 	"testing"
 )
 
-// TestDumpForReading writes the rendered files for a fixture to $CELLWALL_DUMP when set (a
+// TestDumpForReading writes the rendered files for a fixture to $KENNEL_DUMP when set (a
 // development aid for reading generator output; skipped otherwise).
 func TestDumpForReading(t *testing.T) {
-	out := os.Getenv("CELLWALL_DUMP")
+	out := os.Getenv("KENNEL_DUMP")
 	if out == "" {
-		t.Skip("set CELLWALL_DUMP=<dir> to dump generated files")
+		t.Skip("set KENNEL_DUMP=<dir> to dump generated files")
 	}
-	fixture := os.Getenv("CELLWALL_DUMP_FIXTURE")
+	fixture := os.Getenv("KENNEL_DUMP_FIXTURE")
 	if fixture == "" {
 		fixture = "node-vite"
 	}

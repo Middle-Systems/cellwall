@@ -35,7 +35,7 @@ These are single-machine figures; treat them as an order of magnitude, not a spe
 
 ## CLI startup
 
-The spec asks for under 50 ms for commands that do not need Docker. `cellwall version` measured a
+The spec asks for under 50 ms for commands that do not need Docker. `kennel version` measured a
 median of 6 ms (maximum 9 ms over 30 runs) on the same machine.
 
 ## Regression gate

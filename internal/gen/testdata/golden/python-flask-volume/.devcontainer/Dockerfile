@@ -1,9 +1,9 @@
-# cellwall:generated sha256=ed00f06ba16953ca1b8ea5742729784b68c4dafae52f94eaaacacdeace87bcb3
+# kennel:generated sha256=a1d0ca2bb4beb256c2a614e6579ed371086f0da700a91d332c61305d1d12d4b0
 # Agent image for python-flask.
 # Built on the HOST network (not sandboxed). At run time the container is attached only to the
 # internal `sandbox` network, so it reaches the internet only through the gateway.
-# Every base and toolchain image is pinned by digest (they move only when you upgrade cellwall and re-run `cellwall init`).
-# Edit .cellwall/config.yaml and re-run `cellwall init`; hand edits to this file are detected and kept.
+# Every base and toolchain image is pinned by digest (they move only when you upgrade kennel and re-run `kennel init`).
+# Edit .kennel/config.yaml and re-run `kennel init`; hand edits to this file are detected and kept.
 
 ARG UID=1000
 ARG GID=1000
@@ -60,10 +60,10 @@ RUN set -eux; \
 RUN install -d -o "${UID}" -g "${GID}" /workspace '/workspace/.mypy_cache' '/workspace/.pytest_cache' '/workspace/.ruff_cache' '/workspace/.venv' \
  && install -d -o "${UID}" -g "${GID}" /home/dev/.cache
 
-COPY --chmod=0755 entrypoint.sh /usr/local/bin/cellwall-entrypoint
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/kennel-entrypoint
 
 USER dev
 WORKDIR /workspace
 ENV HOME=/home/dev
-ENTRYPOINT ["/usr/local/bin/cellwall-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/kennel-entrypoint"]
 CMD ["sleep", "infinity"]

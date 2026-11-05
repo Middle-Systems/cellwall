@@ -1,5 +1,5 @@
-// Package configedit makes small, comment-preserving changes to .cellwall/config.yaml on behalf of
-// commands such as `cellwall ports add`. Anything larger is the user's to edit by hand.
+// Package configedit makes small, comment-preserving changes to .kennel/config.yaml on behalf of
+// commands such as `kennel ports add`. Anything larger is the user's to edit by hand.
 package configedit
 
 import (
@@ -13,9 +13,9 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/safefs"
-	"github.com/middle-systems/cellwall/internal/yamlkeep"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/safefs"
+	"github.com/middle-systems/kennel/internal/yamlkeep"
 )
 
 // Change records an edit so it can be undone if what depends on it is refused.

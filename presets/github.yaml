@@ -1,5 +1,5 @@
 # Preset: github
-# Provenance: Public registry documentation from maintainer knowledge; NOT yet verified empirically (spike S6). Treat as a starting point and run with 'cellwall logs --denied'. Allowing github.com lets an agent push to ANY repository the token can reach, including a malicious one. Use a narrowly scoped token.
+# Provenance: Public registry documentation from maintainer knowledge; NOT yet verified empirically (spike S6). Treat as a starting point and run with 'kennel logs --denied'. Allowing github.com lets an agent push to ANY repository the token can reach, including a malicious one. Use a narrowly scoped token.
 # Rules are exact hostnames on port 443. Presets never contain relaxations (enforced by tests).
 version: 1
 description: "GitHub: git over HTTPS and the REST/GraphQL API"

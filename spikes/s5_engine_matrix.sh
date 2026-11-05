@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# S5: record how a container engine behaves for the properties cellwall relies on. Run it on each
+# S5: record how a container engine behaves for the properties kennel relies on. Run it on each
 # engine you want in the matrix (Docker Desktop, Colima, OrbStack, Rancher Desktop, Podman with
 # its docker-compatible socket) and paste the printed row into docs/spikes.md.
 #
@@ -31,9 +31,9 @@ echo "running the spikes (a minute or two)..."
 # s1b starts a service on the *host* and probes it from a container on the engine's bridge. That
 # only means something when the engine shares the shell's network namespace (Linux). Docker
 # Desktop and similar run the engine in a VM, where the bridge is not on the host at all: the
-# host-reachability claim there is covered by `cellwall verify` (check 10), not by this spike.
+# host-reachability claim there is covered by `kennel verify` (check 10), not by this spike.
 if docker info --format '{{.OperatingSystem}}' 2>/dev/null | grep -qi 'desktop' || [ "$(uname -s | cut -c1-5)" != Linux ]; then
-  host_blocked="n/a (engine in a VM: use cellwall verify, check 10)"
+  host_blocked="n/a (engine in a VM: use kennel verify, check 10)"
 else
   host_blocked=$(run s1b_host_reachability.sh)
 fi

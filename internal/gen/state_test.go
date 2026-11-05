@@ -16,11 +16,11 @@ func TestComposePathTranslatesWindowsPaths(t *testing.T) {
 			t.Errorf("ComposePath(%q) = %q, want %q", in, got, want)
 		}
 	}
-	f, err := EnvFile(1000, 1000, `C:\Users\me\proj`, `C:\Users\me\proj\.cellwall\state`, "img", 0)
+	f, err := EnvFile(1000, 1000, `C:\Users\me\proj`, `C:\Users\me\proj\.kennel\state`, "img", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(f.Content), "CELLWALL_WORKSPACE='C:/Users/me/proj'") || strings.Contains(string(f.Content), `\`) {
+	if !strings.Contains(string(f.Content), "KENNEL_WORKSPACE='C:/Users/me/proj'") || strings.Contains(string(f.Content), `\`) {
 		t.Errorf("env file has backslashes:\n%s", f.Content)
 	}
 }

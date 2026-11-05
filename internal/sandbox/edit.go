@@ -7,16 +7,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/compose"
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/policyedit"
-	"github.com/middle-systems/cellwall/internal/prepare"
+	"github.com/middle-systems/kennel/internal/compose"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/policyedit"
+	"github.com/middle-systems/kennel/internal/prepare"
 )
 
 // EditOptions configures Edit.
 type EditOptions struct {
 	Edit policyedit.Edit
-	Save bool          // write to the committed .cellwall/policy.yaml instead of the session layer
+	Save bool          // write to the committed .kennel/policy.yaml instead of the session layer
 	Wait time.Duration // how long to wait for a running gateway to load the change; default 15s
 }
 
@@ -120,17 +120,17 @@ func notAllowedError(host string, port int, d policy.Decision, pr *prepare.Resul
 		if d.Rule != nil {
 			where = fmt.Sprintf("deny rule rules[%d] (%s, from %s)", d.Rule.Index, d.Rule.Rule.Host, sourceOf(d.Rule.Rule))
 		}
-		return fmt.Errorf("%s:%d is still denied by %s, and a deny always beats an allow\n  next: remove that deny in .cellwall/policy.yaml (or the preset/layer it comes from) if you really want this host, then re-run", host, port, where)
+		return fmt.Errorf("%s:%d is still denied by %s, and a deny always beats an allow\n  next: remove that deny in .kennel/policy.yaml (or the preset/layer it comes from) if you really want this host, then re-run", host, port, where)
 	case policy.ReasonHTTPNotAllow:
-		return fmt.Errorf("%s:%d is plain HTTP, which cellwall refuses by default\n  next: use https (port 443). If plain HTTP is truly required, set unsafe_allow_http on a rule in .cellwall/policy.yaml by hand so it is reviewed", host, port)
+		return fmt.Errorf("%s:%d is plain HTTP, which kennel refuses by default\n  next: use https (port 443). If plain HTTP is truly required, set unsafe_allow_http on a rule in .kennel/policy.yaml by hand so it is reviewed", host, port)
 	default:
-		return fmt.Errorf("%s:%d would still be denied (%s)\n  next: run `cellwall policy lint` and check .cellwall/policy.yaml", host, port, d.Reason)
+		return fmt.Errorf("%s:%d would still be denied (%s)\n  next: run `kennel policy lint` and check .kennel/policy.yaml", host, port, d.Reason)
 	}
 }
 
 func sourceOf(r policy.Rule) string {
 	if r.Source == "" || r.Source == "policy" {
-		return ".cellwall/policy.yaml or the session layer"
+		return ".kennel/policy.yaml or the session layer"
 	}
 	return strings.TrimPrefix(r.Source, "preset:") + " preset"
 }

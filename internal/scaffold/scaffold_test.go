@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/gen"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/gen"
 )
 
 // project copies a fixture into a fresh temp dir named name.
@@ -99,7 +99,7 @@ func TestInitCreatesTheFiles(t *testing.T) {
 		t.Errorf("project name = %q", p.Config.Project)
 	}
 	for _, want := range []string{
-		".cellwall/config.yaml", ".cellwall/policy.yaml", ".cellwall/.gitignore",
+		".kennel/config.yaml", ".kennel/policy.yaml", ".kennel/.gitignore",
 		".devcontainer/Dockerfile", ".devcontainer/compose.yaml", ".devcontainer/devcontainer.json",
 		".devcontainer/entrypoint.sh", ".devcontainer/.gitattributes",
 		".devcontainer/agent/claude/package.json", ".devcontainer/agent/claude/package-lock.json",
@@ -191,20 +191,20 @@ func TestMergeLeavesTheExistingSetupUntouched(t *testing.T) {
 		t.Errorf("dir = %q", p.Config.Devcontainer.Dir)
 	}
 	for _, w := range rep.Written {
-		if strings.HasPrefix(w, ".devcontainer/") && !strings.HasPrefix(w, ".devcontainer/cellwall/") {
-			t.Errorf("--merge wrote outside .devcontainer/cellwall/: %s", w)
+		if strings.HasPrefix(w, ".devcontainer/") && !strings.HasPrefix(w, ".devcontainer/kennel/") {
+			t.Errorf("--merge wrote outside .devcontainer/kennel/: %s", w)
 		}
 	}
 	after := snapshot(t, root)
 	if orig[".devcontainer/devcontainer.json"] != after[".devcontainer/devcontainer.json"] {
 		t.Error("the existing devcontainer.json was modified by --merge")
 	}
-	if _, err := os.Stat(filepath.Join(root, ".devcontainer", "cellwall", "devcontainer.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".devcontainer", "kennel", "devcontainer.json")); err != nil {
 		t.Error("merge-mode devcontainer.json missing")
 	}
 	// The merged layout points back at the project root two levels up.
-	b, _ := os.ReadFile(filepath.Join(root, ".devcontainer", "cellwall", "compose.yaml"))
-	if !strings.Contains(string(b), "${CELLWALL_WORKSPACE:-../..}") {
+	b, _ := os.ReadFile(filepath.Join(root, ".devcontainer", "kennel", "compose.yaml"))
+	if !strings.Contains(string(b), "${KENNEL_WORKSPACE:-../..}") {
 		t.Errorf("merge layout must resolve the workspace as ../..:\n%s", b)
 	}
 }
@@ -219,10 +219,10 @@ func TestForceOverwritesGeneratedButNeverSeeds(t *testing.T) {
 		t.Error("--force should have replaced the foreign devcontainer.json")
 	}
 	// Seeds are the user's: edit, then --force again.
-	cfgPath := filepath.Join(root, ".cellwall", "config.yaml")
+	cfgPath := filepath.Join(root, ".kennel", "config.yaml")
 	edited := strings.Replace(readFile(t, cfgPath), "mode: bind", "mode: bind # edited", 1)
 	_ = os.WriteFile(cfgPath, []byte(edited), 0o644)
-	polPath := filepath.Join(root, ".cellwall", "policy.yaml")
+	polPath := filepath.Join(root, ".kennel", "policy.yaml")
 	_ = os.WriteFile(polPath, []byte("version: 1\nrules:\n  - host: mine.example.com\n"), 0o644)
 	if _, _, err := initProject(t, root, Options{Force: true}); err != nil {
 		t.Fatal(err)
@@ -271,7 +271,7 @@ func TestEditedGeneratedFilesAreKeptAndReported(t *testing.T) {
 func TestConfigChangeRegeneratesPristineFiles(t *testing.T) {
 	root := project(t, "node-vite", "x")
 	initProject(t, root, Options{})
-	cfgPath := filepath.Join(root, ".cellwall", "config.yaml")
+	cfgPath := filepath.Join(root, ".kennel", "config.yaml")
 	_ = os.WriteFile(cfgPath, []byte(strings.Replace(readFile(t, cfgPath), `memory: "8g"`, `memory: "2g"`, 1)), 0o644)
 
 	_, rep, err := initProject(t, root, Options{})
@@ -306,15 +306,15 @@ func TestInitNeverWritesThroughSymlinks(t *testing.T) {
 		t.Errorf("files were written OUTSIDE the project through the symlink: %v", entries)
 	}
 
-	// A symlinked .cellwall directory too.
+	// A symlinked .kennel directory too.
 	root2 := project(t, "node-vite", "y")
-	_ = os.Symlink(outside, filepath.Join(root2, ".cellwall"))
+	_ = os.Symlink(outside, filepath.Join(root2, ".kennel"))
 	p2, _ := Build(Options{Root: root2})
 	if _, err := p2.Apply(); err == nil {
-		t.Error("a symlinked .cellwall must be refused")
+		t.Error("a symlinked .kennel must be refused")
 	}
 	if entries, _ := os.ReadDir(outside); len(entries) != 0 {
-		t.Errorf("files were written through the .cellwall symlink: %v", entries)
+		t.Errorf("files were written through the .kennel symlink: %v", entries)
 	}
 }
 
@@ -402,10 +402,10 @@ func TestWarnings(t *testing.T) {
 	// An unpinned agent version is flagged.
 	root3 := project(t, "node-vite", "v")
 	initProject(t, root3, Options{})
-	cfgPath := filepath.Join(root3, ".cellwall", "config.yaml")
+	cfgPath := filepath.Join(root3, ".kennel", "config.yaml")
 	_ = os.WriteFile(cfgPath, []byte(strings.Replace(readFile(t, cfgPath), `"2.1.286"`, `"2.1.200"`, 1)), 0o644)
 	p3, _ := Build(Options{Root: root3})
-	if !strings.Contains(strings.Join(p3.Warnings, "\n"), "no cellwall integrity pin") {
+	if !strings.Contains(strings.Join(p3.Warnings, "\n"), "no kennel integrity pin") {
 		t.Errorf("unpinned warning missing: %v", p3.Warnings)
 	}
 	df := ""

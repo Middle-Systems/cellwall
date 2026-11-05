@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/proxy/proxytest"
+	"github.com/middle-systems/kennel/internal/proxy/proxytest"
 )
 
 func hello(sni string) []byte { return proxytest.Records(proxytest.HelloOpts{SNI: sni}) }
@@ -64,7 +64,7 @@ func TestEscapeSuite(t *testing.T) {
 		if r.Status != 403 || r.Reason != "default-deny" {
 			t.Fatalf("not allowlisted: %d %q", r.Status, r.Reason)
 		}
-		for _, want := range []string{"evil.example.org:443", "cellwall allow evil.example.org"} {
+		for _, want := range []string{"evil.example.org:443", "kennel allow evil.example.org"} {
 			if !strings.Contains(r.Body, want) {
 				t.Errorf("403 body must be actionable, missing %q:\n%s", want, r.Body)
 			}
@@ -125,7 +125,7 @@ func TestEscapeSuite(t *testing.T) {
 	t.Run("07 plain HTTP is denied by default", func(t *testing.T) {
 		req := "GET http://upstream/ HTTP/1.1\r\nHost: upstream\r\nConnection: close\r\n\r\n"
 		out := string(l.quick([]byte(req)))
-		if !strings.HasPrefix(out, "HTTP/1.1 403") || !strings.Contains(strings.ToLower(out), "x-cellwall-reason: http-not-allowed") {
+		if !strings.HasPrefix(out, "HTTP/1.1 403") || !strings.Contains(strings.ToLower(out), "x-kennel-reason: http-not-allowed") {
 			t.Fatalf("plain HTTP must be denied:\n%s", out)
 		}
 		l.waitAudit(func(m map[string]any) bool {

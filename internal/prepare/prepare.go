@@ -18,12 +18,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/gen"
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/policyedit"
-	"github.com/middle-systems/cellwall/internal/safefs"
-	"github.com/middle-systems/cellwall/internal/scaffold"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/gen"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/policyedit"
+	"github.com/middle-systems/kennel/internal/safefs"
+	"github.com/middle-systems/kennel/internal/scaffold"
 )
 
 // Options configures Run.
@@ -42,7 +42,7 @@ type Options struct {
 }
 
 // DefaultGatewayImage is what compose uses when no digest-pinned image has been supplied.
-const DefaultGatewayImage = "cellwall-gateway:local"
+const DefaultGatewayImage = "kennel-gateway:local"
 
 // Result describes what prepare did and found.
 type Result struct {
@@ -111,7 +111,7 @@ func Run(opts Options) (*Result, error) {
 	if why := safefs.SymlinkOnPath(root, gen.StateDirRel); why != "" {
 		return nil, fmt.Errorf("%s", why)
 	}
-	if why := safefs.SymlinkOnPath(root, ".cellwall"); why != "" {
+	if why := safefs.SymlinkOnPath(root, ".kennel"); why != "" {
 		return nil, fmt.Errorf("%s", why)
 	}
 
@@ -157,7 +157,7 @@ func Run(opts Options) (*Result, error) {
 		made, w := ensureCacheDirs(root, data.Caches, uid, gid)
 		res.CachesMade, res.Warnings = made, append(res.Warnings, w...)
 	} else {
-		res.Warnings = append(res.Warnings, "workspace.mode: volume — the agent works on its own copy, so protected paths cannot be mounted read-only; `cellwall fetch` holds changes to them for your confirmation instead")
+		res.Warnings = append(res.Warnings, "workspace.mode: volume — the agent works on its own copy, so protected paths cannot be mounted read-only; `kennel fetch` holds changes to them for your confirmation instead")
 	}
 	secretSources, warns, err := resolveSecrets(cfg)
 	if err != nil {
@@ -181,7 +181,7 @@ func Run(opts Options) (*Result, error) {
 	clamp := 0.0
 	if opts.EngineCPUs > 0 && cfg.Hardening.CPUs > float64(opts.EngineCPUs) {
 		clamp = float64(opts.EngineCPUs)
-		res.Warnings = append(res.Warnings, fmt.Sprintf("hardening.cpus is %g but the container engine has %d CPUs; using %d (raise the engine's CPU allocation, or lower hardening.cpus in .cellwall/config.yaml)", cfg.Hardening.CPUs, opts.EngineCPUs, opts.EngineCPUs))
+		res.Warnings = append(res.Warnings, fmt.Sprintf("hardening.cpus is %g but the container engine has %d CPUs; using %d (raise the engine's CPU allocation, or lower hardening.cpus in .kennel/config.yaml)", cfg.Hardening.CPUs, opts.EngineCPUs, opts.EngineCPUs))
 	}
 	res.GatewayImage = image
 	env, err := gen.EnvFile(uid, gid, root, stateDir, image, clamp)
@@ -207,7 +207,7 @@ func Run(opts Options) (*Result, error) {
 }
 
 // driftWarnings reports generated container files that no longer match the configuration. Without
-// this, editing .cellwall/config.yaml and forgetting `cellwall init` leaves the sandbox running
+// this, editing .kennel/config.yaml and forgetting `kennel init` leaves the sandbox running
 // with the old settings and nothing says so.
 func driftWarnings(root string, opts Options) []string {
 	plan, err := scaffold.Build(scaffold.Options{Root: root, GlobalConfigDir: opts.GlobalConfigDir})
@@ -224,7 +224,7 @@ func driftWarnings(root string, opts Options) []string {
 		return nil
 	}
 	sort.Strings(stale)
-	return []string{"generated files are out of date with .cellwall/config.yaml (" + strings.Join(stale, ", ") + "): run `cellwall init` to regenerate them"}
+	return []string{"generated files are out of date with .kennel/config.yaml (" + strings.Join(stale, ", ") + "): run `kennel init` to regenerate them"}
 }
 
 func nz(s []string) []string {
@@ -359,15 +359,15 @@ func MergedPolicy(root, globalDir string, cfg *config.Config) (*policy.Policy, [
 			global = g
 		}
 	}
-	projPath := filepath.Join(root, ".cellwall", "policy.yaml")
+	projPath := filepath.Join(root, ".kennel", "policy.yaml")
 	project, err := readPolicy(projPath)
 	if err != nil {
 		return nil, nil, err
 	}
 	if project == nil {
-		warns = append(warns, ".cellwall/policy.yaml not found: only the agent's own hosts are allowed (run `cellwall init`)")
+		warns = append(warns, ".kennel/policy.yaml not found: only the agent's own hosts are allowed (run `kennel init`)")
 	}
-	// The session layer (`cellwall allow` / `deny` without --save) has the highest precedence.
+	// The session layer (`kennel allow` / `deny` without --save) has the highest precedence.
 	session, err := policyedit.LoadSession(root)
 	if err != nil {
 		return nil, nil, err
@@ -413,7 +413,7 @@ func existingGatewayImage(root string) string {
 		return ""
 	}
 	for _, line := range strings.Split(string(b), "\n") {
-		if v, ok := strings.CutPrefix(line, "CELLWALL_GATEWAY_IMAGE="); ok {
+		if v, ok := strings.CutPrefix(line, "KENNEL_GATEWAY_IMAGE="); ok {
 			return strings.Trim(strings.TrimSpace(v), "'")
 		}
 	}
@@ -439,7 +439,7 @@ func readPolicy(path string) (*policy.Policy, error) {
 	return p, nil
 }
 
-// chownIfRoot hands a directory this process just created to the sandbox user. When cellwall runs
+// chownIfRoot hands a directory this process just created to the sandbox user. When kennel runs
 // as root (sudo, a root-only CI runner) the sandbox still runs as an unprivileged uid, and a
 // root-owned audit or cache directory would be unwritable for it: the gateway could not open its
 // audit log and refuses to start (fail closed). A non-root user needs nothing: the sandbox uid is
@@ -494,7 +494,7 @@ func resolveSecrets(cfg *config.Config) (map[string]string, []string, error) {
 		}
 		fi, err := os.Stat(p)
 		if err != nil {
-			return nil, nil, fmt.Errorf("secret %q: %s is not readable (%w). Create it, or remove the secret from .cellwall/config.yaml", s.Name, p, err)
+			return nil, nil, fmt.Errorf("secret %q: %s is not readable (%w). Create it, or remove the secret from .kennel/config.yaml", s.Name, p, err)
 		}
 		if !fi.Mode().IsRegular() {
 			return nil, nil, fmt.Errorf("secret %q: %s is not a regular file", s.Name, p)

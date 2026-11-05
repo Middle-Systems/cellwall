@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/engine"
-	"github.com/middle-systems/cellwall/internal/prepare"
-	"github.com/middle-systems/cellwall/internal/sandbox"
+	"github.com/middle-systems/kennel/internal/engine"
+	"github.com/middle-systems/kennel/internal/prepare"
+	"github.com/middle-systems/kennel/internal/sandbox"
 )
 
 func newPrepareCmd(g *globalFlags) *cobra.Command {
@@ -17,8 +17,8 @@ func newPrepareCmd(g *globalFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "prepare",
 		Short: "Write the gateway policy and per-session mounts",
-		Long: "Compiles the project's policy (agent presets, your user-global policy, .cellwall/policy.yaml)\n" +
-			"and writes the live state under .cellwall/state/: the effective policy the gateway hot-reloads,\n" +
+		Long: "Compiles the project's policy (agent presets, your user-global policy, .kennel/policy.yaml)\n" +
+			"and writes the live state under .kennel/state/: the effective policy the gateway hot-reloads,\n" +
 			"the compose override with the read-only protected-path mounts and secrets, and compose.env.\n" +
 			"It lists every active relaxation and any protected path created since the last run.\n" +
 			"Running it again with nothing changed writes nothing.",
@@ -26,7 +26,7 @@ func newPrepareCmd(g *globalFlags) *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			res, err := prepare.Run(prepare.Options{Root: g.ProjectDir, GlobalConfigDir: globalConfigDir(), GatewayImage: gatewayImage, EngineCPUs: sandbox.EngineCPUs(cmd.Context(), engine.ExecRunner{})})
 			if err != nil {
-				return fmt.Errorf("%w\n  next: fix the problem above, then re-run `cellwall prepare`", err)
+				return fmt.Errorf("%w\n  next: fix the problem above, then re-run `kennel prepare`", err)
 			}
 			if g.JSON {
 				return writeJSON(cmd.OutOrStdout(), prepareJSON(res))
@@ -68,7 +68,7 @@ func prepareJSON(r *prepare.Result) prepareReport {
 }
 
 func printPrepare(w io.Writer, r *prepare.Result) {
-	writef(w, "cellwall prepare: %s\n\n", r.Config.Project)
+	writef(w, "kennel prepare: %s\n\n", r.Config.Project)
 	writef(w, "policy %s: %d rules from presets [%s]\n", r.Policy.Hash[:12], len(r.Policy.Policy.Rules), strings.Join(r.Presets, ", "))
 	if len(r.Written) == 0 {
 		writef(w, "state is up to date (nothing written)\n")

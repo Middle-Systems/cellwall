@@ -3,7 +3,7 @@ package policy
 import (
 	"go.yaml.in/yaml/v3"
 
-	"github.com/middle-systems/cellwall/internal/strictyaml"
+	"github.com/middle-systems/kennel/internal/strictyaml"
 )
 
 // MaxPolicyBytes bounds how much of a policy file is parsed.

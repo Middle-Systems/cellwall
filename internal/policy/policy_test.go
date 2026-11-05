@@ -85,7 +85,7 @@ func TestValidate(t *testing.T) {
 		{"port dup", "version: 1\nrules:\n  - {host: a.com, ports: [443, 443]}\n", "listed twice"},
 		{"ip host", "version: 1\nrules:\n  - {host: 10.0.0.1}\n", "IP addresses are not allowed"},
 		{"missing host", "version: 1\nrules:\n  - {note: x}\n", "host is required"},
-		{"source forbidden", "version: 1\nrules:\n  - {host: a.com, source: preset:x}\n", "set by cellwall"},
+		{"source forbidden", "version: 1\nrules:\n  - {host: a.com, source: preset:x}\n", "set by kennel"},
 		{"unsafe on deny", "version: 1\nrules:\n  - {host: a.com, action: deny, unsafe_allow_http: true}\n", "only make sense on allow"},
 		{"private on wildcard", "version: 1\nrules:\n  - {host: '*.a.com', unsafe_allow_private: true}\n", "exact host"},
 		{"control char in note", "version: 1\nrules:\n  - {host: a.com, note: \"a\\u0007b\"}\n", "control characters"},

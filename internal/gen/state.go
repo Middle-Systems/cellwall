@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/middle-systems/cellwall/internal/config"
+	"github.com/middle-systems/kennel/internal/config"
 )
 
 // PathInfo is what the generator needs to know about a workspace path. It is injected so the
@@ -96,7 +96,7 @@ func PlanProtected(protected []string, workspaceExpr string, stat func(rel strin
 
 // WorkspaceExpr is the compose expression for the host workspace directory under a layout, with the
 // same relative default the committed compose.yaml uses.
-func WorkspaceExpr(l Layout) string { return "${CELLWALL_WORKSPACE:-" + l.ToRoot + "}" }
+func WorkspaceExpr(l Layout) string { return "${KENNEL_WORKSPACE:-" + l.ToRoot + "}" }
 
 // SecretMount is a read-only secret file mount.
 type SecretMount struct{ Source, Target string }
@@ -163,18 +163,18 @@ func EnvFile(uid, gid int, workspaceAbs, stateAbs, gatewayImage string, cpus flo
 		}
 	}
 	lines := []string{
-		"CELLWALL_GATEWAY_IMAGE='" + gatewayImage + "'",
-		fmt.Sprintf("CELLWALL_GID=%d", gid),
-		"CELLWALL_STATE='" + ComposePath(stateAbs) + "'",
-		fmt.Sprintf("CELLWALL_UID=%d", uid),
-		"CELLWALL_WORKSPACE='" + ComposePath(workspaceAbs) + "'",
+		"KENNEL_GATEWAY_IMAGE='" + gatewayImage + "'",
+		fmt.Sprintf("KENNEL_GID=%d", gid),
+		"KENNEL_STATE='" + ComposePath(stateAbs) + "'",
+		fmt.Sprintf("KENNEL_UID=%d", uid),
+		"KENNEL_WORKSPACE='" + ComposePath(workspaceAbs) + "'",
 	}
 	if cpus > 0 {
 		// Docker refuses to create a container whose CPU limit exceeds the engine's CPUs, so a
 		// limit above that is clamped here (and reported by prepare) rather than failing `up`.
-		lines = append(lines, "CELLWALL_CPUS="+strconv.FormatFloat(cpus, 'f', -1, 64))
+		lines = append(lines, "KENNEL_CPUS="+strconv.FormatFloat(cpus, 'f', -1, 64))
 	}
-	body := "# Written by `cellwall prepare`; local to this machine.\n" + strings.Join(lines, "\n") + "\n"
+	body := "# Written by `kennel prepare`; local to this machine.\n" + strings.Join(lines, "\n") + "\n"
 	return File{Path: StateDirRel + "/compose.env", Content: []byte(Stamp("#", body)), Mode: 0o644, Kind: Generated}, nil
 }
 

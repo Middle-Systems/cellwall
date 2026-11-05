@@ -20,28 +20,28 @@ var (
 	buildErr  error
 )
 
-// staticBinary builds cellwall once per test run, statically linked like a release, so `up` can
+// staticBinary builds kennel once per test run, statically linked like a release, so `up` can
 // build the gateway image from it.
 func staticBinary(t *testing.T) string {
 	t.Helper()
 	buildOnce.Do(func() {
-		dir, err := os.MkdirTemp("", "cellwall-e2e-bin-")
+		dir, err := os.MkdirTemp("", "kennel-e2e-bin-")
 		if err != nil {
 			buildErr = err
 			return
 		}
-		builtBin = filepath.Join(dir, "cellwall")
+		builtBin = filepath.Join(dir, "kennel")
 		if runtime.GOOS == "windows" {
 			builtBin += ".exe"
 		}
-		cmd := exec.Command("go", "build", "-trimpath", "-o", builtBin, filepath.Join(repoRoot(t), "cmd", "cellwall"))
+		cmd := exec.Command("go", "build", "-trimpath", "-o", builtBin, filepath.Join(repoRoot(t), "cmd", "kennel"))
 		cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			buildErr = errors.New(string(out))
 		}
 	})
 	if buildErr != nil {
-		t.Fatalf("build cellwall: %v", buildErr)
+		t.Fatalf("build kennel: %v", buildErr)
 	}
 	return builtBin
 }
@@ -77,7 +77,7 @@ func newProject(t *testing.T, fixture string) *project {
 	if err := os.MkdirAll(filepath.Join(p.ws, ".git", "hooks"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	p.env = append(os.Environ(), "CELLWALL_CONFIG_DIR="+t.TempDir())
+	p.env = append(os.Environ(), "KENNEL_CONFIG_DIR="+t.TempDir())
 	t.Cleanup(func() { p.cw("", "down", "--volumes", "--yes") })
 	return p
 }
@@ -97,7 +97,7 @@ func (p *project) cw(stdin string, args ...string) result {
 	if errors.As(err, &ee) {
 		code = ee.ExitCode()
 	} else if err != nil {
-		p.t.Fatalf("cellwall %s: %v", strings.Join(args, " "), err)
+		p.t.Fatalf("kennel %s: %v", strings.Join(args, " "), err)
 	}
 	return result{o.String(), e.String(), code}
 }

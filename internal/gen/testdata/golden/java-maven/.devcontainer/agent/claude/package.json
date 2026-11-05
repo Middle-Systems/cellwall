@@ -1,8 +1,8 @@
 {
-  "name": "cellwall-agent-claude",
+  "name": "kennel-agent-claude",
   "version": "0.0.0",
   "private": true,
-  "description": "Pins Claude Code for the cellwall agent image; npm ci verifies every package against package-lock.json integrity hashes.",
+  "description": "Pins Claude Code for the kennel agent image; npm ci verifies every package against package-lock.json integrity hashes.",
   "dependencies": {
     "@anthropic-ai/claude-code": "2.1.286"
   }

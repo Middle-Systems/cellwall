@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/middle-systems/cellwall/internal/config"
+	"github.com/middle-systems/kennel/internal/config"
 )
 
 const cfg = `# my config
@@ -24,7 +24,7 @@ hardening:
 func project(t *testing.T, content string) string {
 	t.Helper()
 	root := t.TempDir()
-	_ = os.MkdirAll(filepath.Join(root, ".cellwall"), 0o755)
+	_ = os.MkdirAll(filepath.Join(root, ".kennel"), 0o755)
 	if err := os.WriteFile(filepath.Join(root, config.ProjectFile), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestSetPortsAddsTheKeyWhenMissing(t *testing.T) {
 }
 
 func TestSetPortsWithoutAConfigPointsAtInit(t *testing.T) {
-	if _, err := SetPorts(t.TempDir(), []int{3000}); err == nil || !strings.Contains(err.Error(), "cellwall init") {
+	if _, err := SetPorts(t.TempDir(), []int{3000}); err == nil || !strings.Contains(err.Error(), "kennel init") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -101,10 +101,10 @@ func TestSetPortsWithoutAConfigPointsAtInit(t *testing.T) {
 func TestSetPortsRefusesASymlinkedConfigDirectory(t *testing.T) {
 	root := t.TempDir()
 	target := project(t, cfg)
-	if err := os.Symlink(filepath.Join(target, ".cellwall"), filepath.Join(root, ".cellwall")); err != nil {
+	if err := os.Symlink(filepath.Join(target, ".kennel"), filepath.Join(root, ".kennel")); err != nil {
 		t.Skip(err)
 	}
 	if _, err := SetPorts(root, []int{3000}); err == nil {
-		t.Fatal("must not write through a symlinked .cellwall")
+		t.Fatal("must not write through a symlinked .kennel")
 	}
 }

@@ -61,8 +61,8 @@ func TestChangePortsEditsConfigAndRegeneratesCompose(t *testing.T) {
 			t.Errorf("compose lacks %q", want)
 		}
 	}
-	if !strings.Contains(readFile(t, root, ".cellwall/config.yaml"), "ports: [3000, 5173]") {
-		t.Errorf("config:\n%s", readFile(t, root, ".cellwall/config.yaml"))
+	if !strings.Contains(readFile(t, root, ".kennel/config.yaml"), "ports: [3000, 5173]") {
+		t.Errorf("config:\n%s", readFile(t, root, ".kennel/config.yaml"))
 	}
 
 	// Adding the same port again is a no-op.
@@ -83,7 +83,7 @@ func TestChangePortsEditsConfigAndRegeneratesCompose(t *testing.T) {
 func TestChangePortsRefusesInvalidPortsAndLeavesFilesAlone(t *testing.T) {
 	root, global := project(t)
 	e := Env{Runner: &fakeEngine{root: root}, GlobalDir: global}
-	beforeCfg := readFile(t, root, ".cellwall/config.yaml")
+	beforeCfg := readFile(t, root, ".kennel/config.yaml")
 	beforeCompose := readFile(t, root, ".devcontainer/compose.yaml")
 
 	for _, port := range []int{80, 3128, 3129, 70000} {
@@ -91,7 +91,7 @@ func TestChangePortsRefusesInvalidPortsAndLeavesFilesAlone(t *testing.T) {
 			t.Errorf("port %d should be refused", port)
 		}
 	}
-	if readFile(t, root, ".cellwall/config.yaml") != beforeCfg || readFile(t, root, ".devcontainer/compose.yaml") != beforeCompose {
+	if readFile(t, root, ".kennel/config.yaml") != beforeCfg || readFile(t, root, ".devcontainer/compose.yaml") != beforeCompose {
 		t.Error("a refused change modified files")
 	}
 	if _, err := ChangePorts(context.Background(), e, root, nil, []int{4242}); err == nil || !strings.Contains(err.Error(), "ports ls") {
@@ -108,7 +108,7 @@ func TestChangePortsDoesNotOverwriteAHandEditedComposeFile(t *testing.T) {
 	if err := os.WriteFile(path, []byte(edited), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	beforeCfg := readFile(t, root, ".cellwall/config.yaml")
+	beforeCfg := readFile(t, root, ".kennel/config.yaml")
 
 	_, err := ChangePorts(context.Background(), e, root, []int{3000}, nil)
 	if err == nil || !strings.Contains(err.Error(), "compose.yaml") || !strings.Contains(err.Error(), "next:") {
@@ -117,7 +117,7 @@ func TestChangePortsDoesNotOverwriteAHandEditedComposeFile(t *testing.T) {
 	if readFile(t, root, ".devcontainer/compose.yaml") != edited {
 		t.Error("the user's compose file was overwritten")
 	}
-	if readFile(t, root, ".cellwall/config.yaml") != beforeCfg {
+	if readFile(t, root, ".kennel/config.yaml") != beforeCfg {
 		t.Error("the config edit was not undone")
 	}
 }

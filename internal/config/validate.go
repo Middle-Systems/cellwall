@@ -42,7 +42,7 @@ var allowedCaps = map[string]bool{"SYS_PTRACE": true}
 
 // reservedEnv are names the agent's environment must not carry. Proxy variables would redirect the
 // agent around its own gateway; loader and search-path variables are classic injection vectors;
-// CELLWALL_ is reserved for the tool.
+// KENNEL_ is reserved for the tool.
 func reservedEnv(name string) bool {
 	u := strings.ToUpper(name)
 	switch u {
@@ -55,7 +55,7 @@ func reservedEnv(name string) bool {
 		"NODE_OPTIONS", "PYTHONSTARTUP", "PYTHONPATH", "RUBYOPT", "PERL5OPT", "JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS":
 		return true
 	}
-	return strings.Contains(u, "PROXY") || strings.HasPrefix(u, "CELLWALL_") || strings.HasPrefix(u, "DOCKER_") || strings.HasPrefix(u, "LD_")
+	return strings.Contains(u, "PROXY") || strings.HasPrefix(u, "KENNEL_") || strings.HasPrefix(u, "DOCKER_") || strings.HasPrefix(u, "LD_")
 }
 
 // Validate checks the effective configuration. It is purely syntactic about host-specific things
@@ -129,7 +129,7 @@ func (c *Config) Validate() error {
 		case !envNameRe.MatchString(k):
 			bad("agent.env", "%q is not a valid variable name", k)
 		case reservedEnv(k):
-			bad("agent.env", "%q is reserved (proxy, loader, search-path and cellwall variables cannot be set)", k)
+			bad("agent.env", "%q is reserved (proxy, loader, search-path and kennel variables cannot be set)", k)
 		case strings.ContainsAny(v, "\x00\n\r"):
 			bad("agent.env", "value of %q contains control characters", k)
 		}

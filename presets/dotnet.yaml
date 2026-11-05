@@ -1,5 +1,5 @@
 # Preset: dotnet
-# Provenance: Public registry documentation from maintainer knowledge; NOT yet verified empirically (spike S6). NuGet serves package content from a CDN host; confirm with 'cellwall logs --denied' on first restore.
+# Provenance: Public registry documentation from maintainer knowledge; NOT yet verified empirically (spike S6). NuGet serves package content from a CDN host; confirm with 'kennel logs --denied' on first restore.
 # Rules are exact hostnames on port 443. Presets never contain relaxations (enforced by tests).
 version: 1
 description: "NuGet: package index and CDN"

@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/audit"
-	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/kennel/internal/audit"
+	"github.com/middle-systems/kennel/internal/policy"
 )
 
 func quiet() *slog.Logger { return slog.New(slog.DiscardHandler) }
@@ -239,7 +239,7 @@ func connectReason(t *testing.T, proxyAddr, target string) (int, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return resp.StatusCode, resp.Header.Get("X-Cellwall-Reason")
+	return resp.StatusCode, resp.Header.Get("X-Kennel-Reason")
 }
 
 // The in-process version of escape-suite check 12: an `allow` takes effect within 2 s.

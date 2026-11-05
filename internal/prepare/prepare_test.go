@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/config"
-	"github.com/middle-systems/cellwall/internal/policy"
-	"github.com/middle-systems/cellwall/internal/policyedit"
-	"github.com/middle-systems/cellwall/internal/scaffold"
+	"github.com/middle-systems/kennel/internal/config"
+	"github.com/middle-systems/kennel/internal/policy"
+	"github.com/middle-systems/kennel/internal/policyedit"
+	"github.com/middle-systems/kennel/internal/scaffold"
 )
 
 func initialised(t *testing.T, fixture string) string {
@@ -88,7 +88,7 @@ func TestPrepareWritesState(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The gateway's policy: JSON that the gateway's own loader accepts, with agent + stack presets.
-	raw := read(t, root, ".cellwall/state/policy/policy.json")
+	raw := read(t, root, ".kennel/state/policy/policy.json")
 	p, err := policy.Parse("policy.json", []byte(raw))
 	if err != nil {
 		t.Fatalf("the gateway could not parse what prepare wrote: %v", err)
@@ -110,26 +110,26 @@ func TestPrepareWritesState(t *testing.T) {
 		t.Errorf("presets = %v", res.Presets)
 	}
 
-	env := read(t, root, ".cellwall/state/compose.env")
-	for _, want := range []string{"CELLWALL_UID=1234", "CELLWALL_GID=5678", "CELLWALL_GATEWAY_IMAGE='cellwall-gateway:local'", "CELLWALL_WORKSPACE='" + filepath.ToSlash(root) + "'"} {
+	env := read(t, root, ".kennel/state/compose.env")
+	for _, want := range []string{"KENNEL_UID=1234", "KENNEL_GID=5678", "KENNEL_GATEWAY_IMAGE='kennel-gateway:local'", "KENNEL_WORKSPACE='" + filepath.ToSlash(root) + "'"} {
 		if !strings.Contains(env, want) {
 			t.Errorf("compose.env missing %s:\n%s", want, env)
 		}
 	}
-	ov := read(t, root, ".cellwall/state/compose.override.yaml")
+	ov := read(t, root, ".kennel/state/compose.override.yaml")
 	for _, want := range []string{
-		`target: "/workspace/.cellwall"`, `target: "/workspace/.devcontainer"`, "read_only: true",
-		"type: tmpfs", "target: /workspace/.cellwall/state", "create_host_path: false",
+		`target: "/workspace/.kennel"`, `target: "/workspace/.devcontainer"`, "read_only: true",
+		"type: tmpfs", "target: /workspace/.kennel/state", "create_host_path: false",
 	} {
 		if !strings.Contains(ov, want) {
 			t.Errorf("override missing %s:\n%s", want, ov)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(root, ".cellwall/state/audit")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".kennel/state/audit")); err != nil {
 		t.Error("audit directory not created")
 	}
 	var m manifest
-	if err := json.Unmarshal([]byte(read(t, root, ".cellwall/state/manifest.json")), &m); err != nil || m.PolicyHash != c.Hash {
+	if err := json.Unmarshal([]byte(read(t, root, ".kennel/state/manifest.json")), &m); err != nil || m.PolicyHash != c.Hash {
 		t.Errorf("manifest: %v %+v", err, m)
 	}
 }
@@ -141,7 +141,7 @@ func TestPrepareIsIdempotentAndDoesNotPokeTheGateway(t *testing.T) {
 	}
 	stat := func() map[string]time.Time {
 		out := map[string]time.Time{}
-		_ = filepath.WalkDir(filepath.Join(root, ".cellwall/state"), func(p string, d fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(filepath.Join(root, ".kennel/state"), func(p string, d fs.DirEntry, err error) error {
 			if err == nil && !d.IsDir() {
 				fi, _ := d.Info()
 				out[p] = fi.ModTime()
@@ -169,27 +169,27 @@ func TestPrepareIsIdempotentAndDoesNotPokeTheGateway(t *testing.T) {
 func TestPolicyEditsFlowThroughOnlyPolicyJSON(t *testing.T) {
 	root := initialised(t, "node-vite")
 	Run(Options{Root: root})
-	edit(t, root, ".cellwall/policy.yaml", "rules: []", "rules:\n  - host: api.example.com\n    ports: [443, 8443]\n")
+	edit(t, root, ".kennel/policy.yaml", "rules: []", "rules:\n  - host: api.example.com\n    ports: [443, 8443]\n")
 	res, err := Run(Options{Root: root})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Written) < 1 || res.Written[0] != ".cellwall/state/policy/policy.json" {
+	if len(res.Written) < 1 || res.Written[0] != ".kennel/state/policy/policy.json" {
 		t.Errorf("written = %v", res.Written)
 	}
-	if !strings.Contains(read(t, root, ".cellwall/state/policy/policy.json"), "api.example.com") {
+	if !strings.Contains(read(t, root, ".kennel/state/policy/policy.json"), "api.example.com") {
 		t.Error("the new rule is missing from the effective policy")
 	}
 	// A broken policy is an error with a position, and the previous effective policy is untouched.
-	good := read(t, root, ".cellwall/state/policy/policy.json")
-	mkfile(t, root, ".cellwall/policy.yaml", "version: 1\nrulez: []\n")
+	good := read(t, root, ".kennel/state/policy/policy.json")
+	mkfile(t, root, ".kennel/policy.yaml", "version: 1\nrulez: []\n")
 	if _, err := Run(Options{Root: root}); err == nil || !strings.Contains(err.Error(), "policy.yaml:2:1") {
 		t.Errorf("want a positioned error, got %v", err)
 	}
-	if read(t, root, ".cellwall/state/policy/policy.json") != good {
+	if read(t, root, ".kennel/state/policy/policy.json") != good {
 		t.Error("a failed prepare must not change the live policy")
 	}
-	mkfile(t, root, ".cellwall/policy.yaml", "version: 1\nrules:\n  - host: '*.github.io'\n")
+	mkfile(t, root, ".kennel/policy.yaml", "version: 1\nrules:\n  - host: '*.github.io'\n")
 	if _, err := Run(Options{Root: root}); err == nil || !strings.Contains(err.Error(), "wildcard-user-content") {
 		t.Errorf("a dangerous wildcard must be refused: %v", err)
 	}
@@ -197,8 +197,8 @@ func TestPolicyEditsFlowThroughOnlyPolicyJSON(t *testing.T) {
 
 func TestAgentOptionsAndAllowlistAgree(t *testing.T) {
 	root := initialised(t, "node-vite")
-	edit(t, root, ".cellwall/config.yaml", "telemetry: false", "telemetry: true")
-	edit(t, root, ".cellwall/config.yaml", "mcp_connectors: false", "mcp_connectors: true")
+	edit(t, root, ".kennel/config.yaml", "telemetry: false", "telemetry: true")
+	edit(t, root, ".kennel/config.yaml", "mcp_connectors: false", "mcp_connectors: true")
 	res, err := Run(Options{Root: root})
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +212,7 @@ func TestAgentOptionsAndAllowlistAgree(t *testing.T) {
 	}
 	// agent.preset none brings no implicit hosts.
 	root2 := initialised(t, "node-vite")
-	edit(t, root2, ".cellwall/config.yaml", "preset: claude", "preset: none")
+	edit(t, root2, ".kennel/config.yaml", "preset: claude", "preset: none")
 	r2, err := Run(Options{Root: root2})
 	if err != nil {
 		t.Fatal(err)
@@ -260,7 +260,7 @@ func TestProtectedMountsPinParents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ov := read(t, root, ".cellwall/state/compose.override.yaml")
+	ov := read(t, root, ".kennel/state/compose.override.yaml")
 	// Parents are pinned writable so they cannot be renamed away; leaves are read-only.
 	for _, want := range []string{`"/workspace/.git"`, `"/workspace/.vscode"`, `"/workspace/.git/hooks"`, `"/workspace/.vscode/tasks.json"`, `"/workspace/.mcp.json"`} {
 		if !strings.Contains(ov, want) {
@@ -306,7 +306,7 @@ func TestProtectedPathCreatedDuringASessionIsSurfaced(t *testing.T) {
 		t.Errorf("warnings: %v", res.Warnings)
 	}
 	// From now on it is mounted read-only, and the manifest no longer lists it as missing.
-	if !strings.Contains(read(t, root, ".cellwall/state/compose.override.yaml"), `"/workspace/.mcp.json"`) {
+	if !strings.Contains(read(t, root, ".kennel/state/compose.override.yaml"), `"/workspace/.mcp.json"`) {
 		t.Error("it should be mounted now")
 	}
 	if len(Appeared(root)) != 0 {
@@ -325,7 +325,7 @@ func TestSymlinkedProtectedPathIsReportedNotMounted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Protected.Symlinked) != 1 || strings.Contains(read(t, root, ".cellwall/state/compose.override.yaml"), `/workspace/.mcp.json`) {
+	if len(res.Protected.Symlinked) != 1 || strings.Contains(read(t, root, ".kennel/state/compose.override.yaml"), `/workspace/.mcp.json`) {
 		t.Errorf("symlinked protected path: %+v", res.Protected)
 	}
 	if !strings.Contains(strings.Join(res.Warnings, "\n"), "symlink") {
@@ -337,12 +337,12 @@ func TestUnprotectRemovesTheMountAndIsReported(t *testing.T) {
 	root := initialised(t, "node-vite")
 	mkfile(t, root, ".vscode/tasks.json", "{}")
 	mkfile(t, root, ".vscode/settings.json", "{}")
-	edit(t, root, ".cellwall/config.yaml", "# unsafe:\n#   unprotect: [\".vscode/tasks.json\"]", "unsafe:\n  unprotect: [\".vscode/tasks.json\"]")
+	edit(t, root, ".kennel/config.yaml", "# unsafe:\n#   unprotect: [\".vscode/tasks.json\"]", "unsafe:\n  unprotect: [\".vscode/tasks.json\"]")
 	res, err := Run(Options{Root: root})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ov := read(t, root, ".cellwall/state/compose.override.yaml")
+	ov := read(t, root, ".kennel/state/compose.override.yaml")
 	if strings.Contains(ov, "tasks.json") || !strings.Contains(ov, "settings.json") {
 		t.Errorf("only tasks.json should be unprotected:\n%s", ov)
 	}
@@ -398,14 +398,14 @@ func TestSecretsAreMountedButNeverRead(t *testing.T) {
 	const sentinel = "ghp_SUPERSECRETVALUE123"
 	secret := filepath.Join(home, "gh_token")
 	_ = os.WriteFile(secret, []byte(sentinel), 0o600)
-	edit(t, root, ".cellwall/config.yaml", "# secrets:\n#   - name: github_token\n#     source_file: ~/.config/cellwall/github_token\n#     env: GH_TOKEN",
+	edit(t, root, ".kennel/config.yaml", "# secrets:\n#   - name: github_token\n#     source_file: ~/.config/kennel/github_token\n#     env: GH_TOKEN",
 		"secrets:\n  - name: github_token\n    source_file: ~/gh_token\n    env: GH_TOKEN")
 	// Editing the config makes the generated files stale until `init` is re-run: prepare says so.
 	stale, err := Run(Options{Root: root})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(strings.Join(stale.Warnings, "\n"), "run `cellwall init`") {
+	if !strings.Contains(strings.Join(stale.Warnings, "\n"), "run `kennel init`") {
 		t.Errorf("config edited but compose.yaml stale: prepare must warn: %v", stale.Warnings)
 	}
 	reinit(t, root)
@@ -416,7 +416,7 @@ func TestSecretsAreMountedButNeverRead(t *testing.T) {
 	if strings.Contains(strings.Join(res.Warnings, "\n"), "out of date") {
 		t.Errorf("after init the drift warning must clear: %v", res.Warnings)
 	}
-	ov := read(t, root, ".cellwall/state/compose.override.yaml")
+	ov := read(t, root, ".kennel/state/compose.override.yaml")
 	if !strings.Contains(ov, `target: "/run/secrets/github_token"`) || !strings.Contains(ov, filepath.ToSlash(secret)) {
 		t.Errorf("secret mount missing:\n%s", ov)
 	}
@@ -433,7 +433,7 @@ func TestSecretsAreMountedButNeverRead(t *testing.T) {
 		t.Errorf("0600 file should not warn: %v", res.Warnings)
 	}
 	compose := read(t, root, ".devcontainer/compose.yaml")
-	if !strings.Contains(compose, `CELLWALL_SECRETS_ENV: "github_token:GH_TOKEN"`) || strings.Contains(compose, sentinel) {
+	if !strings.Contains(compose, `KENNEL_SECRETS_ENV: "github_token:GH_TOKEN"`) || strings.Contains(compose, sentinel) {
 		t.Errorf("compose should name the secret, never carry it")
 	}
 
@@ -454,7 +454,7 @@ func TestSecretsAreMountedButNeverRead(t *testing.T) {
 func TestStateDirectorySymlinkIsRefused(t *testing.T) {
 	root := initialised(t, "node-vite")
 	outside := t.TempDir()
-	if err := os.Symlink(outside, filepath.Join(root, ".cellwall", "state")); err != nil {
+	if err := os.Symlink(outside, filepath.Join(root, ".kennel", "state")); err != nil {
 		t.Skip("symlinks unavailable: ", err)
 	}
 	if _, err := Run(Options{Root: root}); err == nil || !strings.Contains(err.Error(), "symlink") {
@@ -467,12 +467,12 @@ func TestStateDirectorySymlinkIsRefused(t *testing.T) {
 
 func TestVolumeModeSkipsBindMounts(t *testing.T) {
 	root := initialised(t, "node-vite")
-	edit(t, root, ".cellwall/config.yaml", "mode: bind", "mode: volume")
+	edit(t, root, ".kennel/config.yaml", "mode: bind", "mode: volume")
 	res, err := Run(Options{Root: root})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ov := read(t, root, ".cellwall/state/compose.override.yaml")
+	ov := read(t, root, ".kennel/state/compose.override.yaml")
 	if strings.Contains(ov, "tmpfs") || strings.Contains(ov, "/workspace/") {
 		t.Errorf("volume mode has no bind-mounted workspace:\n%s", ov)
 	}
@@ -506,8 +506,8 @@ func TestAgentPresets(t *testing.T) {
 }
 
 func TestPrepareWithoutInit(t *testing.T) {
-	if _, err := Run(Options{Root: t.TempDir()}); err == nil || !strings.Contains(err.Error(), "cellwall init") {
-		t.Errorf("want a pointer to `cellwall init`, got %v", err)
+	if _, err := Run(Options{Root: t.TempDir()}); err == nil || !strings.Contains(err.Error(), "kennel init") {
+		t.Errorf("want a pointer to `kennel init`, got %v", err)
 	}
 }
 
@@ -540,8 +540,8 @@ func TestPrepareClampsCPUsToTheEngine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := read(t, root, ".cellwall/state/compose.env")
-	if !strings.Contains(env, "CELLWALL_CPUS=2\n") {
+	env := read(t, root, ".kennel/state/compose.env")
+	if !strings.Contains(env, "KENNEL_CPUS=2\n") {
 		t.Errorf("compose.env lacks the clamp:\n%s", env)
 	}
 	if !strings.Contains(strings.Join(res.Warnings, "\n"), "engine has 2 CPUs") {
@@ -551,7 +551,7 @@ func TestPrepareClampsCPUsToTheEngine(t *testing.T) {
 	if _, err := Run(Options{Root: root, EngineCPUs: 64}); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(read(t, root, ".cellwall/state/compose.env"), "CELLWALL_CPUS") {
+	if strings.Contains(read(t, root, ".kennel/state/compose.env"), "KENNEL_CPUS") {
 		t.Error("a limit within the engine's CPUs must not be overridden")
 	}
 }
@@ -561,7 +561,7 @@ func TestSessionRulesReachTheEffectivePolicyAndAreReported(t *testing.T) {
 	if _, err := Run(Options{Root: root}); err != nil {
 		t.Fatal(err)
 	}
-	before := read(t, root, ".cellwall/state/policy/policy.json")
+	before := read(t, root, ".kennel/state/policy/policy.json")
 	if _, err := policyedit.ApplySession(root, policyedit.Edit{Action: policy.ActionAllow, Hosts: []string{"registry.example.com"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -569,7 +569,7 @@ func TestSessionRulesReachTheEffectivePolicyAndAreReported(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	after := read(t, root, ".cellwall/state/policy/policy.json")
+	after := read(t, root, ".kennel/state/policy/policy.json")
 	if before == after || !strings.Contains(after, "registry.example.com") {
 		t.Error("the session rule did not change the effective policy")
 	}
@@ -586,7 +586,7 @@ func TestPrepareKeepsTheGatewayImageItWasGiven(t *testing.T) {
 	if _, err := Run(Options{Root: root}); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(read(t, root, ".cellwall/state/compose.env"), "registry.example.com/gw@sha256:abc") {
+	if !strings.Contains(read(t, root, ".kennel/state/compose.env"), "registry.example.com/gw@sha256:abc") {
 		t.Error("a later prepare reset the gateway image to the default")
 	}
 }

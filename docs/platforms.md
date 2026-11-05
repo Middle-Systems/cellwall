@@ -1,8 +1,8 @@
 # Platforms and the manual test matrix
 
-cellwall's isolation claims are verified in CI on Linux with Docker Engine. macOS and Windows run
+kennel's isolation claims are verified in CI on Linux with Docker Engine. macOS and Windows run
 containers inside a VM, so the same claims need to be checked there by a person. Record results with
-`cellwall verify --strict` plus the steps below, and add a row per run.
+`kennel verify --strict` plus the steps below, and add a row per run.
 
 ## What differs
 
@@ -13,27 +13,27 @@ containers inside a VM, so the same claims need to be checked there by a person.
 | Protected paths | read-only overlay mounts | not applicable in volume mode (host files are not shared) | same |
 | Bind mode | fast | slow file sharing; works | very slow from the Windows filesystem (measured 65-300x slower than a volume for 20,000 small files, S8); keep the project in the WSL filesystem if you need bind |
 
-Volume mode copies the repository into the sandbox. Work comes back with `cellwall fetch` and is
-applied with `cellwall fetch --apply` (see ADR 0009). Ignored files (for example `.env`) are not
+Volume mode copies the repository into the sandbox. Work comes back with `kennel fetch` and is
+applied with `kennel fetch --apply` (see ADR 0009). Ignored files (for example `.env`) are not
 copied in.
 
 ## Checklist for a run
 
 On a clean checkout of a small git repository:
 
-1. `cellwall init` — the printed workspace mode matches the table above.
-2. `cellwall up` — completes without hand-built images; `cellwall status` shows an isolated network.
-3. `cellwall verify --strict` — all checks pass (workspace isolation runs instead of protected paths
+1. `kennel init` — the printed workspace mode matches the table above.
+2. `kennel up` — completes without hand-built images; `kennel status` shows an isolated network.
+3. `kennel verify --strict` — all checks pass (workspace isolation runs instead of protected paths
    in volume mode).
-4. In `cellwall shell`: `curl -sS https://example.org` is refused; `cellwall allow example.org` makes
+4. In `kennel shell`: `curl -sS https://example.org` is refused; `kennel allow example.org` makes
    it work without a restart.
-5. Commit in the agent, then `cellwall fetch` lists the commit; `cellwall fetch --apply` fast-forwards.
-6. A preview port (`cellwall ports add 5173`) opens in the host browser.
-7. `cellwall down --volumes` warns about unfetched work.
+5. Commit in the agent, then `kennel fetch` lists the commit; `kennel fetch --apply` fast-forwards.
+6. A preview port (`kennel ports add 5173`) opens in the host browser.
+7. `kennel down --volumes` warns about unfetched work.
 
 ## Results
 
-| Date | Platform | Engine | cellwall | Result | Notes |
+| Date | Platform | Engine | kennel | Result | Notes |
 |---|---|---|---|---|---|
 | — | Ubuntu 24.04 (CI) | Docker Engine | each commit | e2e + `verify --strict` pass | automated |
 | _pending_ | macOS (Apple silicon) | | | | needs a Mac |

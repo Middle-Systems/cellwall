@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/middle-systems/cellwall/internal/engine"
+	"github.com/middle-systems/kennel/internal/engine"
 )
 
 // Status is the outcome of one check.
@@ -177,8 +177,8 @@ func cliCheck(ctx context.Context, o Options) (Result, bool) {
 	if errors.Is(err, engine.ErrNotFound) {
 		return Result{
 			ID: "engine-cli", Title: "docker CLI", Status: Fail,
-			Detail: "`docker` was not found on PATH, so cellwall cannot build or start the sandbox",
-			Fix:    "install Docker Engine 28+ (Linux) or Docker Desktop / Colima / OrbStack (macOS, Windows), then re-run `cellwall doctor`",
+			Detail: "`docker` was not found on PATH, so kennel cannot build or start the sandbox",
+			Fix:    "install Docker Engine 28+ (Linux) or Docker Desktop / Colima / OrbStack (macOS, Windows), then re-run `kennel doctor`",
 		}, false
 	}
 	// `docker version` exits non-zero when the daemon is down but still prints the client version.
@@ -196,7 +196,7 @@ func daemonCheck(ctx context.Context, o Options) (*dockerInfo, Result) {
 		return nil, Result{
 			ID: "engine-daemon", Title: "Engine daemon", Status: Fail,
 			Detail: "could not reach the container engine: " + oneLine(err.Error()),
-			Fix:    "start the engine (Docker Desktop / `colima start` / `sudo systemctl start docker`), then re-run `cellwall doctor`",
+			Fix:    "start the engine (Docker Desktop / `colima start` / `sudo systemctl start docker`), then re-run `kennel doctor`",
 		}
 	}
 	var info dockerInfo
@@ -215,7 +215,7 @@ func engineVersionCheck(info *dockerInfo) Result {
 	if !ok {
 		return Result{ID: "engine-version", Title: title, Status: Warn,
 			Detail: fmt.Sprintf("could not parse engine version %q", info.ServerVersion),
-			Fix:    "run `cellwall verify` after `cellwall up`: it tests host isolation directly"}
+			Fix:    "run `kennel verify` after `kennel up`: it tests host isolation directly"}
 	}
 	if major < MinEngineMajor {
 		return Result{ID: "engine-version", Title: title, Status: Fail,
@@ -249,7 +249,7 @@ func flavorCheck(ctx context.Context, o Options, info *dockerInfo) Result {
 		if json.Unmarshal(out, &v) == nil && v.Server != nil {
 			for _, c := range v.Server.Components {
 				if strings.Contains(strings.ToLower(c.Name), "podman") {
-					notes = append(notes, "Podman detected: best-effort support only; run `cellwall verify` to confirm isolation")
+					notes = append(notes, "Podman detected: best-effort support only; run `kennel verify` to confirm isolation")
 					status = Warn
 				}
 			}
@@ -288,7 +288,7 @@ func resourceCheck(o Options, info *dockerInfo) Result {
 		return Result{ID: "resources", Title: title, Status: Pass, Detail: detail}
 	}
 	return Result{ID: "resources", Title: title, Status: Warn, Detail: detail + " (" + strings.Join(short, "; ") + ")",
-		Fix: "raise the VM's resources in your engine settings, or lower hardening.memory / hardening.cpus in .cellwall/config.yaml"}
+		Fix: "raise the VM's resources in your engine settings, or lower hardening.memory / hardening.cpus in .kennel/config.yaml"}
 }
 
 func majorVersion(v string) (int, bool) {

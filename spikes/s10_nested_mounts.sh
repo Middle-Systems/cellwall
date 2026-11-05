@@ -8,8 +8,8 @@ source "$(dirname "$0")/lib.sh"
 
 WS="$(mktemp -d)"; defer "rm -rf $WS"
 chmod 777 "$WS"
-mkdir -p "$WS/.cellwall/state"; echo "secret-policy" >"$WS/.cellwall/state/policy.json"; echo cfg >"$WS/.cellwall/config.yaml"
-chmod -R a+rX "$WS/.cellwall"
+mkdir -p "$WS/.kennel/state"; echo "secret-policy" >"$WS/.kennel/state/policy.json"; echo cfg >"$WS/.kennel/config.yaml"
+chmod -R a+rX "$WS/.kennel"
 
 # Image with the cache directory pre-created and owned by uid 1000, and one without.
 CTX="$(mktemp -d)"; defer "rm -rf $CTX"
@@ -56,18 +56,18 @@ echo "== C. tmpfs over a path inside a read-only bind mount"
 C="${RUN_ID}-c"
 docker run -d --name "$C" --user 1000:1000 \
   --mount type=bind,src="$WS",dst=/workspace \
-  --mount type=bind,src="$WS/.cellwall",dst=/workspace/.cellwall,readonly \
-  --mount type=tmpfs,dst=/workspace/.cellwall/state,tmpfs-mode=0555,tmpfs-size=4096 \
+  --mount type=bind,src="$WS/.kennel",dst=/workspace/.kennel,readonly \
+  --mount type=tmpfs,dst=/workspace/.kennel/state,tmpfs-mode=0555,tmpfs-size=4096 \
   busybox:1.36 sleep 60 >/dev/null && defer "docker rm -f $C"
 sleep 1
-expect_ok   "control: agent can read the committed config through the ro mount" docker exec "$C" cat /workspace/.cellwall/config.yaml
-expect_fail "agent cannot see the state file (hidden by tmpfs)"                  docker exec "$C" cat /workspace/.cellwall/state/policy.json
-expect_ok   "the state directory exists but is empty" docker exec "$C" sh -c '[ -d /workspace/.cellwall/state ] && [ -z "$(ls -A /workspace/.cellwall/state)" ]'
-expect_fail "agent cannot write other files into .cellwall (ro)"                 docker exec "$C" sh -c 'echo x >/workspace/.cellwall/evil'
-# cellwall sets the tmpfs mode explicitly (0555, one page) because the engine default differs:
+expect_ok   "control: agent can read the committed config through the ro mount" docker exec "$C" cat /workspace/.kennel/config.yaml
+expect_fail "agent cannot see the state file (hidden by tmpfs)"                  docker exec "$C" cat /workspace/.kennel/state/policy.json
+expect_ok   "the state directory exists but is empty" docker exec "$C" sh -c '[ -d /workspace/.kennel/state ] && [ -z "$(ls -A /workspace/.kennel/state)" ]'
+expect_fail "agent cannot write other files into .kennel (ro)"                 docker exec "$C" sh -c 'echo x >/workspace/.kennel/evil'
+# kennel sets the tmpfs mode explicitly (0555, one page) because the engine default differs:
 # root-owned 0755 on Docker Engine 29.6, world-writable on Docker Desktop 4.92. With the explicit
 # mode the non-root agent cannot write scratch files there on either.
-expect_fail "agent cannot write into the hiding tmpfs either"                    docker exec "$C" sh -c 'echo x >/workspace/.cellwall/state/scratch'
-[ ! -e "$WS/.cellwall/state/scratch" ] && result PASS "nothing reaches the host state directory" || result FAIL "write leaked to the host"
-[ "$(cat "$WS/.cellwall/state/policy.json")" = "secret-policy" ] && result PASS "host state file untouched" || result FAIL "host state file changed"
+expect_fail "agent cannot write into the hiding tmpfs either"                    docker exec "$C" sh -c 'echo x >/workspace/.kennel/state/scratch'
+[ ! -e "$WS/.kennel/state/scratch" ] && result PASS "nothing reaches the host state directory" || result FAIL "write leaked to the host"
+[ "$(cat "$WS/.kennel/state/policy.json")" = "secret-policy" ] && result PASS "host state file untouched" || result FAIL "host state file changed"
 summary

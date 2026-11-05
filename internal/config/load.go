@@ -9,16 +9,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/middle-systems/cellwall/internal/strictyaml"
+	"github.com/middle-systems/kennel/internal/strictyaml"
 )
 
 // Layer says where a config file sits in the precedence order (lowest first).
 type Layer int
 
 const (
-	// LayerUserGlobal is ~/.config/cellwall/config.yaml: personal defaults across projects.
+	// LayerUserGlobal is ~/.config/kennel/config.yaml: personal defaults across projects.
 	LayerUserGlobal Layer = iota
-	// LayerProject is the committed .cellwall/config.yaml.
+	// LayerProject is the committed .kennel/config.yaml.
 	LayerProject
 )
 
@@ -128,13 +128,13 @@ func clone(c *Config) (*Config, error) {
 
 // LoadOptions says where to read config from.
 type LoadOptions struct {
-	ProjectDir string // directory containing .cellwall/
-	// GlobalDir is the user-global config directory (e.g. ~/.config/cellwall). Empty disables it.
+	ProjectDir string // directory containing .kennel/
+	// GlobalDir is the user-global config directory (e.g. ~/.config/kennel). Empty disables it.
 	GlobalDir string
 }
 
 // ProjectFile is the project config path relative to the project directory.
-const ProjectFile = ".cellwall/config.yaml"
+const ProjectFile = ".kennel/config.yaml"
 
 // Loaded is the result of Load.
 type Loaded struct {
@@ -143,8 +143,8 @@ type Loaded struct {
 	GlobalFile  string // path actually read, "" if none
 }
 
-// ErrNoProjectConfig is returned when the project has no .cellwall/config.yaml.
-var ErrNoProjectConfig = errors.New("no .cellwall/config.yaml in this project (run `cellwall init`)")
+// ErrNoProjectConfig is returned when the project has no .kennel/config.yaml.
+var ErrNoProjectConfig = errors.New("no .kennel/config.yaml in this project (run `kennel init`)")
 
 // Load layers defaults < user-global < project, validates, and returns the effective config.
 func Load(opts LoadOptions) (*Loaded, error) {

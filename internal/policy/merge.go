@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/middle-systems/cellwall/presets"
+	"github.com/middle-systems/kennel/presets"
 )
 
 var presetName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)

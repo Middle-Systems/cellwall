@@ -1,4 +1,4 @@
-// Package engine abstracts how cellwall talks to the container engine.
+// Package engine abstracts how kennel talks to the container engine.
 //
 // v1 shells out to the docker CLI for maximum compatibility (Docker Desktop, Colima,
 // OrbStack, Rancher Desktop, Podman's docker-compatible socket). Everything that runs a

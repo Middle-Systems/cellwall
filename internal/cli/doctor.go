@@ -6,13 +6,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/doctor"
+	"github.com/middle-systems/kennel/internal/doctor"
 )
 
 func newDoctorCmd(g *globalFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "doctor",
-		Short: "Check the host for everything cellwall needs",
+		Short: "Check the host for everything kennel needs",
 		Long: "Checks the container engine, Compose, platform quirks and resources. Exits non-zero if any\n" +
 			"check fails; warnings do not change the exit code.",
 		Args: cobra.NoArgs,

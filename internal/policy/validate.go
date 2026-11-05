@@ -74,7 +74,7 @@ func (r *Rule) validate(i int, allowSource bool) error {
 		}
 	}
 	if r.Source != "" && !allowSource {
-		return r.errf(i, "\"source\" is set by cellwall and cannot be written in a policy file")
+		return r.errf(i, "\"source\" is set by kennel and cannot be written in a policy file")
 	}
 	if r.IsDeny() && (r.UnsafeAllowHTTP || r.UnsafeAllowPrivate || r.UnsafeAllowECH || r.UnsafeSkipTLSCheck || r.UnsafeDangerousWildcard) {
 		return r.errf(i, "unsafe_* options only make sense on allow rules")

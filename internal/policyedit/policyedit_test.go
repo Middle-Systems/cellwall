@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/middle-systems/cellwall/internal/policy"
+	"github.com/middle-systems/kennel/internal/policy"
 )
 
 const seed = `# my policy
@@ -25,7 +25,7 @@ limits: {}
 func project(t *testing.T, policyYAML string) string {
 	t.Helper()
 	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, ".cellwall"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, ".kennel"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if policyYAML != "" {
@@ -180,15 +180,15 @@ func TestSaveIntoPoliciesWithoutAnEmptyRulesList(t *testing.T) {
 func TestSaveWithoutPolicyFileExplainsTheNextStep(t *testing.T) {
 	root := project(t, "")
 	_, _, _, err := Save(root, Edit{Action: policy.ActionAllow, Hosts: []string{"a.example.com"}})
-	if err == nil || !strings.Contains(err.Error(), "cellwall init") {
-		t.Fatalf("want a pointer to `cellwall init`, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "kennel init") {
+		t.Fatalf("want a pointer to `kennel init`, got %v", err)
 	}
 }
 
 func TestNothingIsWrittenThroughASymlink(t *testing.T) {
 	root := project(t, seed)
 	target := t.TempDir()
-	if err := os.Symlink(target, filepath.Join(root, ".cellwall", "state")); err != nil {
+	if err := os.Symlink(target, filepath.Join(root, ".kennel", "state")); err != nil {
 		t.Skip("symlinks unavailable: ", err)
 	}
 	if _, err := ApplySession(root, Edit{Action: policy.ActionAllow, Hosts: []string{"a.example.com"}}); err == nil {

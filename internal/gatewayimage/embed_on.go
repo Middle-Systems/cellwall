@@ -8,10 +8,10 @@ import _ "embed"
 // in a Linux container. The release pipeline builds these two files first (CGO_ENABLED=0), then
 // builds the host binaries with `-tags embedgw`.
 
-//go:embed embedded/cellwall-linux-amd64
+//go:embed embedded/kennel-linux-amd64
 var linuxAMD64 []byte
 
-//go:embed embedded/cellwall-linux-arm64
+//go:embed embedded/kennel-linux-arm64
 var linuxARM64 []byte
 
 func embeddedBinary(arch string) ([]byte, bool) {

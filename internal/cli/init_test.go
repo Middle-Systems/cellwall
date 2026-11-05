@@ -36,7 +36,7 @@ func fixture(t *testing.T, name string) string {
 	t.Helper()
 	dst := t.TempDir()
 	copyTree(t, filepath.Join("..", "..", "test", "fixtures", name), dst)
-	t.Setenv("CELLWALL_CONFIG_DIR", t.TempDir()) // an empty user-global layer
+	t.Setenv("KENNEL_CONFIG_DIR", t.TempDir()) // an empty user-global layer
 	return dst
 }
 
@@ -46,7 +46,7 @@ func TestInitCreatesThenIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("init: %v\n%s", err, out)
 	}
-	for _, want := range []string{".cellwall/config.yaml", ".devcontainer/compose.yaml", "detected:"} {
+	for _, want := range []string{".kennel/config.yaml", ".devcontainer/compose.yaml", "detected:"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output lacks %q:\n%s", want, out)
 		}
@@ -77,7 +77,7 @@ func TestInitDryRunWritesNothing(t *testing.T) {
 	if _, _, err := run(t, "init", "--project-dir", dir, "--dry-run"); err != nil {
 		t.Fatal(err)
 	}
-	for _, p := range []string{".cellwall", ".devcontainer"} {
+	for _, p := range []string{".kennel", ".devcontainer"} {
 		if _, err := os.Stat(filepath.Join(dir, p)); err == nil {
 			t.Errorf("dry run created %s", p)
 		}
@@ -101,8 +101,8 @@ func TestInitRefusesToClobberAndExplainsHow(t *testing.T) {
 	if string(before) != string(after) {
 		t.Error("the user's devcontainer.json was modified")
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".cellwall")); err == nil {
-		t.Error("a refused init must write nothing, but .cellwall exists")
+	if _, err := os.Stat(filepath.Join(dir, ".kennel")); err == nil {
+		t.Error("a refused init must write nothing, but .kennel exists")
 	}
 }
 
@@ -116,7 +116,7 @@ func TestInitMergeLeavesExistingSetupAlone(t *testing.T) {
 	if string(before) != string(after) {
 		t.Error("--merge modified the user's devcontainer.json")
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".devcontainer", "cellwall", "compose.yaml")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, ".devcontainer", "kennel", "compose.yaml")); err != nil {
 		t.Errorf("merge layout missing: %v", err)
 	}
 }
@@ -133,7 +133,7 @@ func TestPrepareAfterInitIsQuietAndStable(t *testing.T) {
 	if strings.Contains(out, "out of date") {
 		t.Errorf("prepare reported drift right after init:\n%s", out)
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".cellwall", "state", "policy", "policy.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, ".kennel", "state", "policy", "policy.json")); err != nil {
 		t.Errorf("policy.json not written: %v", err)
 	}
 }
@@ -141,8 +141,8 @@ func TestPrepareAfterInitIsQuietAndStable(t *testing.T) {
 func TestPrepareWithoutInitExplainsNextStep(t *testing.T) {
 	dir := fixture(t, "empty")
 	_, _, err := run(t, "prepare", "--project-dir", dir)
-	if err == nil || !strings.Contains(err.Error(), "cellwall init") {
-		t.Fatalf("want an error pointing at `cellwall init`, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "kennel init") {
+		t.Fatalf("want an error pointing at `kennel init`, got %v", err)
 	}
 }
 
@@ -167,7 +167,7 @@ func TestGeneratedComposeIsValid(t *testing.T) {
 			}
 			cmd := exec.Command("docker", "compose",
 				"-f", filepath.Join(dir, ".devcontainer", "compose.yaml"),
-				"-f", filepath.Join(dir, ".cellwall", "state", "compose.override.yaml"),
+				"-f", filepath.Join(dir, ".kennel", "state", "compose.override.yaml"),
 				"config", "--quiet")
 			if b, err := cmd.CombinedOutput(); err != nil {
 				t.Fatalf("docker compose rejected the generated files: %v\n%s", err, b)

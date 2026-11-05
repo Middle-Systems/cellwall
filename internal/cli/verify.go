@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/middle-systems/cellwall/internal/sandbox"
-	"github.com/middle-systems/cellwall/internal/verify"
+	"github.com/middle-systems/kennel/internal/sandbox"
+	"github.com/middle-systems/kennel/internal/verify"
 )
 
 func newVerifyCmd(g *globalFlags) *cobra.Command {
@@ -32,7 +32,7 @@ func newVerifyCmd(g *globalFlags) *cobra.Command {
 				return err
 			}
 			if !g.JSON {
-				writef(cmd.ErrOrStderr(), "cellwall verify: attacking the running sandbox (about a minute)...\n")
+				writef(cmd.ErrOrStderr(), "kennel verify: attacking the running sandbox (about a minute)...\n")
 			}
 			results := verify.Run(cmd.Context(), ve, only)
 			if len(results) == 0 {
@@ -89,6 +89,6 @@ func printVerify(w io.Writer, rs []verify.Result, strict bool) {
 	}
 	writef(w, "\n")
 	if fail > 0 {
-		writef(w, "next: a FAIL means the sandbox does not hold that property. See docs/threat-model.md, fix the cause, run `cellwall down && cellwall up`, then `cellwall verify` again.\n")
+		writef(w, "next: a FAIL means the sandbox does not hold that property. See docs/threat-model.md, fix the cause, run `kennel down && kennel up`, then `kennel verify` again.\n")
 	}
 }

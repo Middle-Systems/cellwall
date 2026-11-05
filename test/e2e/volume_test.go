@@ -19,16 +19,16 @@ func TestVolumeMode(t *testing.T) {
 	requireDocker(t)
 	root := repoRoot(t)
 
-	bin := filepath.Join(t.TempDir(), "cellwall")
-	build := exec.Command("go", "build", "-trimpath", "-o", bin, filepath.Join(root, "cmd", "cellwall"))
+	bin := filepath.Join(t.TempDir(), "kennel")
+	build := exec.Command("go", "build", "-trimpath", "-o", bin, filepath.Join(root, "cmd", "kennel"))
 	build.Env = append(os.Environ(), "CGO_ENABLED=0")
 	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build cellwall: %v\n%s", err, out)
+		t.Fatalf("build kennel: %v\n%s", err, out)
 	}
 
 	ws := t.TempDir()
 	copyTree(t, filepath.Join(root, "test", "fixtures", "node-vite"), ws)
-	env := append(os.Environ(), "CELLWALL_CONFIG_DIR="+t.TempDir(),
+	env := append(os.Environ(), "KENNEL_CONFIG_DIR="+t.TempDir(),
 		"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@example.org", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@example.org")
 
 	run := func(name string, stdin string, args ...string) (string, string, int) {
@@ -67,7 +67,7 @@ func TestVolumeMode(t *testing.T) {
 	must(bin, "", "init", "--workspace", "volume")
 	// A clean host tree, as a person would have before applying: init's files are committed.
 	must("git", "", "add", "-A")
-	must("git", "", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "add cellwall")
+	must("git", "", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "add kennel")
 	if out := must(bin, "", "up"); !strings.Contains(out, "seeded") && !strings.Contains(out, "copy") {
 		t.Errorf("up should say it seeded the volume:\n%s", out)
 	}

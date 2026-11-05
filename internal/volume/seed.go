@@ -20,7 +20,7 @@ type Layout struct {
 }
 
 // DefaultLayout is the layout inside the generated agent container.
-var DefaultLayout = Layout{Work: "/workspace", Bundle: "/home/dev/.cellwall-seed.bundle"}
+var DefaultLayout = Layout{Work: "/workspace", Bundle: "/home/dev/.kennel-seed.bundle"}
 
 // SeedResult describes what seeding did.
 type SeedResult struct {
@@ -77,9 +77,9 @@ func Seed(ctx context.Context, ag Agent, repo Repo, root string, lay Layout) (*S
 
 	steps := [][]string{
 		{"git", "-C", lay.Work, "init", "-q", "-b", branch},
-		{"git", "-C", lay.Work, "fetch", "-q", lay.Bundle, "HEAD:refs/cellwall-seed"},
-		{"git", "-C", lay.Work, "checkout", "-q", "-f", "-B", branch, "refs/cellwall-seed"},
-		{"git", "-C", lay.Work, "update-ref", "-d", "refs/cellwall-seed"},
+		{"git", "-C", lay.Work, "fetch", "-q", lay.Bundle, "HEAD:refs/kennel-seed"},
+		{"git", "-C", lay.Work, "checkout", "-q", "-f", "-B", branch, "refs/kennel-seed"},
+		{"git", "-C", lay.Work, "update-ref", "-d", "refs/kennel-seed"},
 	}
 	for _, s := range steps {
 		if _, err := agentOut(ctx, ag, s...); err != nil {
