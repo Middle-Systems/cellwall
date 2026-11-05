@@ -15,10 +15,6 @@ jobs:
       contents: write # create the draft release
       id-token: write # keyless signing and provenance
       attestations: write
-    env:
-      # Release tooling requires a newer Go than go.mod's minimum; let the toolchain
-      # auto-switch instead of failing (actions/setup-go v6+ defaults GOTOOLCHAIN to local).
-      GOTOOLCHAIN: auto
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,6 +23,9 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      # setup-go v7 unconditionally exports GOTOOLCHAIN=local; release tooling below
+      # requires a newer Go than go.mod's minimum, so restore auto-switching for this job.
+      - run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
       # Release tooling is built from source at pinned versions (verified through the Go module
       # checksum database) rather than downloaded as binaries.
       - name: Install release tools

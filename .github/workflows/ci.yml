@@ -146,10 +146,6 @@ jobs:
   # .goreleaser.yaml or a failing cross-build before a tag does.
   release-snapshot:
     runs-on: ubuntu-latest
-    env:
-      # goreleaser itself requires a newer Go than go.mod's minimum; let the toolchain
-      # auto-switch instead of failing (actions/setup-go v6+ defaults GOTOOLCHAIN to local).
-      GOTOOLCHAIN: auto
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -158,6 +154,9 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      # setup-go v7 unconditionally exports GOTOOLCHAIN=local; goreleaser requires a newer
+      # Go than go.mod's minimum, so restore auto-switching for the rest of this job.
+      - run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
       - run: go install github.com/goreleaser/goreleaser/v2@v2.18.2
       - run: goreleaser check
       - run: goreleaser release --snapshot --clean --skip=sbom,sign,homebrew,scoop
